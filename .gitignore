@@ -1,2 +1,5 @@
 # ImplementationRoadmap.md
-# DetailedImplementationGuide.mdvenv/
+# DetailedImplementationGuide.md
+venv/
+.env.example
+.env

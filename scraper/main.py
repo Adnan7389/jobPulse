@@ -2,10 +2,11 @@ import asyncio
 import logging
 import os
 import sys
-from telethon import TelegramClient
+from telethon import TelegramClient, events
 import config
 from services.uploader import Uploader
 from services.message_handler import MessageHandler
+from services.channel_joiner import ChannelJoiner
 
 # Configure Logging
 logging.basicConfig(
@@ -22,55 +23,42 @@ SESSION_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'session'
 os.makedirs(SESSION_DIR, exist_ok=True)
 SESSION_FILE = os.path.join(SESSION_DIR, 'scraper_session')
 
-async def process_channel(client, channel):
-    """Scrape messages from a single channel."""
-    channel_id = channel.get('id')
-    channel_username = channel.get('channel_username') 
-    last_scraped_id = channel.get('last_scraped_id', 0)
-    
-    if not channel_username:
-        logger.warning(f"Channel ID {channel_id} has no username. Skipping.")
-        return
-
-    logger.info(f"Processing channel: {channel_username} (Last Scraped ID: {last_scraped_id})")
-
-    try:
-        # Resolve the channel entity
-        entity = await client.get_entity(channel_username)
-        
-        # Determine constraints for fetching
-        kwargs = {}
-        if last_scraped_id and last_scraped_id > 0:
-            kwargs['min_id'] = last_scraped_id
-            kwargs['limit'] = None # Fetch all new messages
-        else:
-            kwargs['limit'] = 50 # First run
-
-        message_count = 0
-        async for message in client.iter_messages(entity, **kwargs):
-            job_data = MessageHandler.format_job_data(message, channel_id, channel_username)
-            if job_data:
-                # Send to backend
-                success = await asyncio.to_thread(Uploader.send_job_post, job_data)
-                if success:
-                    message_count += 1
-        
-        logger.info(f"Finished processing {channel_username}. Scraped {message_count} messages.")
-
-    except Exception as e:
-        logger.error(f"Error processing channel {channel_username}: {e}")
+# Global map of channel_username -> channel_id
+channel_map = {}
 
 async def main():
-    logger.info("Starting JobPulse Scraper...")
+    logger.info("Starting JobPulse Scraper (Real-time Monitoring)...")
     
     if not config.API_ID or not config.API_HASH:
         logger.error("API_ID and API_HASH not found. Check your environment variables.")
         return
 
     # Initialize Telethon Client
-    # The session file will be stored in scraper/session/
     client = TelegramClient(SESSION_FILE, config.API_ID, config.API_HASH)
-    
+
+    @client.on(events.NewMessage)
+    async def handle_new_message(event):
+        try:
+            # Get the chat entity to identify the source
+            chat = await event.get_chat()
+            # Telethon objects might have .username or .id
+            # We use username as the primary key in our map for now
+            username = getattr(chat, 'username', None)
+            
+            if username and username in channel_map:
+                channel_id = channel_map[username]
+                logger.info(f"New message from tracked channel: {username}")
+                
+                job_data = MessageHandler.format_job_data(event.message, channel_id, username)
+                if job_data:
+                    # Push to API immediately
+                    success = await asyncio.to_thread(Uploader.send_job_post, job_data)
+                    if success:
+                        logger.info(f"Successfully ingested job from {username} (Message ID: {event.message.id})")
+            
+        except Exception as e:
+            logger.error(f"Error handling new message event: {e}")
+
     try:
         await client.start()
     except Exception as e:
@@ -79,23 +67,35 @@ async def main():
 
     logger.info("Telegram Client connected successfully.")
 
-    while True:
-        logger.info("Fetching channels to scrape...")
-        channels = await asyncio.to_thread(Uploader.fetch_channels)
+    # 1. Fetch tracked channels from API
+    logger.info("Fetching target channels from API...")
+    channels = await asyncio.to_thread(Uploader.fetch_channels)
+    
+    if not channels:
+        logger.warning("No channels returned from API. Scraper will wait for new messages but might not have filters.")
+    
+    # 2. Join channels and populate map
+    for channel in channels:
+        username = channel.get('channel_username')
+        channel_id = channel.get('id')
         
-        if not channels:
-            logger.info("No channels found or API error. Waiting 60 seconds.")
-            await asyncio.sleep(60)
-            continue
-            
-        for channel in channels:
-            await process_channel(client, channel)
-        
-        logger.info("Cycle complete. Sleeping for 300 seconds.")
-        await asyncio.sleep(300)
+        if username:
+            channel_map[username] = channel_id
+            # Ensure bot is a member
+            await ChannelJoiner.ensure_joined(client, username)
+            logger.info(f"Monitoring: {username} (ID: {channel_id})")
+        else:
+            logger.warning(f"Channel ID {channel_id} has no username. Cannot monitor.")
+
+    logger.info(f"Initialization complete. Monitoring {len(channel_map)} channels. Listening for events...")
+    
+    # 3. Keep the process alive
+    await client.run_until_disconnected()
 
 if __name__ == '__main__':
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Scraper stopped by user.")
+    except Exception as e:
+        logger.critical(f"Unexpected error: {e}")

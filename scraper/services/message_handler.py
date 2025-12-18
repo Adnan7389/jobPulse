@@ -9,14 +9,11 @@ class MessageHandler:
         if not message or not getattr(message, 'text', None):
             return None
             
-        # Construct source link
-        # Use entity username if available, otherwise fallback to channel_username
-        username = channel_username
-        if hasattr(message, 'peer_id') and hasattr(message.peer_id, 'channel_id'):
-            # This is more complex to resolve without entity, 
-            # so we rely on the passed username for now.
-            pass
-            
+        if not username:
+            # Source must come ONLY from event.chat.username (or channel_username)
+            # If missing → skip ingestion to ensure traceability and compliance.
+            return None
+
         source_link = f"https://t.me/{username}/{message.id}"
         
         return {
@@ -24,5 +21,6 @@ class MessageHandler:
             "message_id": message.id,
             "raw_text": message.text,
             "source_link": source_link,
+            "source_channel": username,
             "date": message.date.isoformat() if message.date else None
         }

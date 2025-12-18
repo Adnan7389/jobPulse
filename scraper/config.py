@@ -8,6 +8,9 @@ API_ID = os.getenv("API_ID")
 API_HASH = os.getenv("API_HASH")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://web:8000")
 
+# Security & Compliance: Blocked channels (comma-separated usernames)
+DENYLIST = set(filter(None, [u.strip() for u in os.getenv("DENYLIST", "").split(",")]))
+
 if not API_ID or not API_HASH:
     print("Error: API_ID and API_HASH must be set in environment variables.")
     sys.exit(1)

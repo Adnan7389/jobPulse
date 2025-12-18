@@ -23,7 +23,7 @@ class Uploader:
         """Send scraped job post to the Backend API."""
         try:
             url = f"{config.BACKEND_URL}/api/job_posts/"
-            response = requests.post(url, json=job_data)
+            response = requests.post(url, json=job_data, timeout=10)
             if response.status_code in [200, 201]:
                 logger.info(f"Successfully sent message {job_data.get('message_id')} (Channel {job_data.get('channel_id')}) to backend.")
                 return True

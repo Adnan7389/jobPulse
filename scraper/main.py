@@ -39,13 +39,26 @@ async def main():
     @client.on(events.NewMessage)
     async def handle_new_message(event):
         try:
-            # Get the chat entity to identify the source
+            # 1. Block DMs, Groups, and Private chats (Hard security boundary)
+            # Use Telethon metadata to ensure we only process broadcast channels.
+            if not event.is_channel:
+                return
+                
+            # 2. Public-Channel-Only Guard
+            # Private or non-public sources must never be scraped to ensure 
+            # absolute compliance with Telegram TOS and data privacy.
             chat = await event.get_chat()
-            # Telethon objects might have .username or .id
-            # We use username as the primary key in our map for now
-            username = getattr(chat, 'username', None)
-            
-            if username and username in channel_map:
+            if not getattr(chat, 'broadcast', False) or not getattr(chat, 'username', None):
+                return
+                
+            username = chat.username
+
+            # 3. Check Denylist (Skip ingestion if on blocked list)
+            if username in config.DENYLIST:
+                return
+
+            # 4. Enforce Source Attribution (Check tracked channels)
+            if username in channel_map:
                 channel_id = channel_map[username]
                 logger.info(f"New message from tracked channel: {username}")
                 

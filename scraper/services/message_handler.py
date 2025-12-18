@@ -6,7 +6,7 @@ class MessageHandler:
     @staticmethod
     def format_job_data(message, channel_id, channel_username):
         """Format Telegram message into JobPost data structure."""
-        if not message.text:
+        if not message or not getattr(message, 'text', None):
             return None
             
         # Construct source link

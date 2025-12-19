@@ -1,10 +1,13 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
 from .models import User
 
 @admin.register(User)
-class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'telegram_id', 'is_staff')
-    fieldsets = UserAdmin.fieldsets + (
-        ('JobPulse Info', {'fields': ('telegram_id', 'skills', 'preferences')}),
+class UserAdmin(admin.ModelAdmin):
+    list_display = ('username', 'telegram_id', 'experience_level', 'years_experience')
+    list_filter = ('experience_level',)
+    search_fields = ('username', 'bio')
+    fieldsets = (
+        ('Basic Info', {'fields': ('username', 'telegram_id')}),
+        ('Skills & Experience', {'fields': ('skills', 'job_titles', 'experience_level', 'years_experience', 'bio')}),
+        ('Preferences', {'fields': ('preferences',)}),
     )

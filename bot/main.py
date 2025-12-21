@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from config import config
-from handlers import start, onboarding
+from handlers import start, onboarding, channels, profile
 
 # Configure logging
 logging.basicConfig(
@@ -27,6 +27,8 @@ async def main():
     # Register routers
     dp.include_router(start.router)
     dp.include_router(onboarding.router)
+    dp.include_router(channels.router)
+    dp.include_router(profile.router)
     
     logger.info("Bot started successfully")
     logger.info(f"Backend URL: {config.backend_url}")

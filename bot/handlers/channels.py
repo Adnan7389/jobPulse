@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 @router.message(Command("addchannel"))
 async def cmd_add_channel(message: Message, state: FSMContext):
     """Handle /addchannel command"""
+    logger.info(f"User {message.from_user.id} requested /addchannel")
     
     await message.answer(
         "📢 <b>Add a Telegram Channel to Monitor</b>\n\n"
@@ -36,12 +37,15 @@ async def cmd_add_channel(message: Message, state: FSMContext):
     )
     
     await state.set_state(ChannelStates.waiting_for_channel)
+    current_state = await state.get_state()
+    logger.info(f"State set to: {current_state}")
 
 
 # ==================== Process Channel Input ====================
 @router.message(ChannelStates.waiting_for_channel)
 async def process_channel_input(message: Message, state: FSMContext):
     """Process channel input and add to backend"""
+    logger.info(f"Processing channel input: {message.text}")
     
     channel_input = message.text.strip()
     

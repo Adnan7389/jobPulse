@@ -51,9 +51,11 @@ services:
       - ./bot:/app
     env_file:
       - .env
-    depends_on:
-      web:
-        condition: service_healthy
+    environment:
+      - REDIS_HOST=127.0.0.1
+      - REDIS_PORT=6380
+      - BACKEND_URL=http://localhost:8001
+    network_mode: "host"
     restart: unless-stopped
 
 volumes:

@@ -7,7 +7,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'username', 'telegram_id', 'skills', 'job_titles', 'preferences',
+            'id', 'username', 'telegram_id', 'skills', 'job_titles', 'preferences',
             'bio', 'experience_level', 'years_experience'
         ]
         extra_kwargs = {

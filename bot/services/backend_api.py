@@ -220,7 +220,7 @@ async def add_channel(channel_data: Dict[str, Any]) -> Tuple[bool, str, Optional
             async with httpx.AsyncClient(timeout=float(config.api_timeout)) as client:
                 response = await client.post(url, json=channel_data)
                 
-                if response.status_code == 201:
+                if response.status_code in [200, 201]:
                     data = response.json()
                     channel_id = data.get('id')
                     logger.info(f"Successfully added channel: {channel_data.get('channel_username')}")

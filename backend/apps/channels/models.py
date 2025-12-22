@@ -7,7 +7,7 @@ class Channel(models.Model):
     channel_id = models.BigIntegerField(unique=True, null=True, blank=True, help_text="Telegram Channel ID (Auto-populated if possible)")
     last_scraped_id = models.IntegerField(default=0, help_text="ID of the last message scraped")
     is_active = models.BooleanField(default=True)
-    added_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='added_channels')
+    subscribers = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='subscribed_channels', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

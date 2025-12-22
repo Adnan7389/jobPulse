@@ -6,3 +6,6 @@ class ChannelSerializer(serializers.ModelSerializer):
         model = Channel
         fields = ['id', 'name', 'channel_username', 'channel_id', 'is_active', 'last_scraped_id']
         read_only_fields = ['last_scraped_id', 'is_active']
+        extra_kwargs = {
+            'channel_username': {'validators': []}
+        }

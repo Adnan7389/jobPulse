@@ -9,10 +9,11 @@ from services.backend_api import get_user_profile
 router = Router()
 logger = logging.getLogger(__name__)
 
-# ==================== My Profile Command ====================
+# ==================== My Profile / Preferences Command ====================
 @router.message(Command("myprofile"))
+@router.message(Command("preferences"))
 async def cmd_my_profile(message: Message):
-    """Handle /myprofile command to view user profile"""
+    """Handle /myprofile and /preferences command"""
     
     telegram_id = message.from_user.id
     
@@ -37,10 +38,10 @@ async def cmd_my_profile(message: Message):
     
     # Map experience level to display name
     level_map = {
-        'junior': 'Junior',
-        'mid': 'Mid-level',
-        'senior': 'Senior',
-        'lead': 'Lead/Principal'
+        'junior': 'Entry Level',
+        'mid': 'Mid Level',
+        'senior': 'Senior Level',
+        'lead': 'Executive / Lead'
     }
     exp_level_raw = user_data.get('experience_level', '')
     exp_level = level_map.get(exp_level_raw, exp_level_raw.title())
@@ -50,7 +51,7 @@ async def cmd_my_profile(message: Message):
     
     # Create profile message
     profile_text = (
-        "👤 <b>Your JobPulse Profile</b>\n\n"
+        "👤 <b>Your JobLens Profile</b>\n\n"
         "━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"🛠 <b>Skills:</b>\n{skills}\n\n"
         f"💼 <b>Desired Roles:</b>\n{job_titles}\n\n"

@@ -22,8 +22,8 @@ async def process_skills(message: Message, state: FSMContext):
     # Validate at least one skill
     if not skills:
         await message.answer(
-            "⚠️ Please enter at least one skill.\n\n"
-            "<i>Example: Python, Django, React</i>",
+            "⚠️ Please enter at least one skill or keyword.\n\n"
+            "<i>Example: Marketing, Excel, Python, Sales</i>",
             parse_mode="HTML"
         )
         return
@@ -37,7 +37,7 @@ async def process_skills(message: Message, state: FSMContext):
         "━━━━━━━━━━━━━━━━━━━━━\n\n"
         "<b>Question 2 of 5: Job Titles</b>\n\n"
         "What job roles are you interested in?\n\n"
-        "<i>Example: Backend Developer, DevOps Engineer, Python Developer</i>\n\n"
+        "<i>Example: Accountant, Sales Manager, Data Analyst, Developer</i>\n\n"
         "💡 Enter job titles separated by commas:",
         parse_mode="HTML"
     )
@@ -57,7 +57,7 @@ async def process_job_titles(message: Message, state: FSMContext):
     if not job_titles:
         await message.answer(
             "⚠️ Please enter at least one job title.\n\n"
-            "<i>Example: Backend Developer, Full Stack Engineer</i>",
+            "<i>Example: Project Manager, Designer, Engineer</i>",
             parse_mode="HTML"
         )
         return
@@ -87,10 +87,10 @@ async def process_experience_level(callback: CallbackQuery, state: FSMContext):
     
     # Map to display names
     level_display = {
-        'junior': 'Junior',
-        'mid': 'Mid-level',
-        'senior': 'Senior',
-        'lead': 'Lead/Principal'
+        'junior': 'Entry Level',
+        'mid': 'Mid Level',
+        'senior': 'Senior Level',
+        'lead': 'Executive / Lead'
     }
     
     # Store in FSM context
@@ -144,8 +144,8 @@ async def process_years_experience(message: Message, state: FSMContext):
         "━━━━━━━━━━━━━━━━━━━━━\n\n"
         "<b>Question 5 of 5: About You</b>\n\n"
         "Tell me what kind of job you're looking for. This helps me find the best matches for you!\n\n"
-        "<i>Example: Looking for remote Django opportunities with a focus on API development and microservices. "
-        "Interested in fintech or healthcare domains.</i>\n\n"
+        "<i>Example: Looking for remote Marketing opportunities with a focus on social media. "
+        "Interested in fashion or tech domains.</i>\n\n"
         "💡 Write a short bio about what you're seeking:",
         parse_mode="HTML"
     )
@@ -163,7 +163,7 @@ async def process_bio(message: Message, state: FSMContext):
     if not bio:
         await message.answer(
             "⚠️ Please tell me a bit about what you're looking for.\n\n"
-            "<i>Example: Looking for remote opportunities in backend development</i>",
+            "<i>Example: Looking for remote opportunities in sales or management</i>",
             parse_mode="HTML"
         )
         return

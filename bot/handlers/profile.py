@@ -12,8 +12,15 @@ logger = logging.getLogger(__name__)
 # ==================== My Profile / Preferences Command ====================
 @router.message(Command("myprofile"))
 @router.message(Command("preferences"))
-async def cmd_my_profile(message: Message):
-    """Handle /myprofile and /preferences command"""
+@router.message(Command("update"))
+async def cmd_my_profile(message: Message, state: FSMContext = None):
+    """Handle /myprofile, /preferences, and /update command"""
+    
+    if message.text.startswith('/update') and state:
+        # If user explicitly typed /update, start the onboarding flow immediately
+        await state.clear()
+        from handlers.start import cmd_start
+        return await cmd_start(message, state)
     
     telegram_id = message.from_user.id
     
@@ -55,12 +62,12 @@ async def cmd_my_profile(message: Message):
         "━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"🛠 <b>Skills:</b>\n{skills}\n\n"
         f"💼 <b>Desired Roles:</b>\n{job_titles}\n\n"
-        f"📈 <b>Experience Level:</b>\n{exp_level}\n\n"
+        f"🎯 <b>Filter Category:</b>\n{user_data.get('preferred_category', 'Not set').title()}\n\n"
+        f"🌐 <b>Work Mode:</b>\n{user_data.get('preferred_mode', 'Not set').title()}\n\n"
+        f"📉 <b>Experience Level:</b>\n{exp_level}\n\n"
         f"⏳ <b>Years of Experience:</b>\n{years_exp} years\n\n"
         f"📝 <b>Bio / Looking For:</b>\n{bio}\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "💡 <b>Want to update your profile?</b>\n"
-        "You can update your skills and preferences by running the onboarding again."
+        "━━━━━━━━━━━━━━━━━━━━━\n"
     )
     
     # Inline keyboard for actions
@@ -79,21 +86,8 @@ async def cmd_my_profile(message: Message):
 
 @router.callback_query(F.data == "edit_profile_start")
 async def handle_edit_profile(callback: CallbackQuery, state: FSMContext):
-    """Handle edit profile button - essentially triggers /start"""
-    await callback.answer()
-    
-    # Import locally to avoid circular imports if any, 
-    # though start handler should be registered in main
-    # Here we just send a message guiding user to /start or trigger it manually if needed.
-    # Simpler to just tell them:
-    
-    await callback.message.answer(
-        "🔄 <b>Update Profile</b>\n\n"
-        "To update your profile, we'll go through the setup steps again. "
-        "This ensures all your data is fresh!\n\n"
-        "👉 Click /start to begin.",
-        parse_mode="HTML"
-    )
+    from handlers.start import cmd_start
+    await cmd_start(callback.message, state)
 
 @router.callback_query(F.data == "view_channels")
 async def handle_view_channels(callback: CallbackQuery):

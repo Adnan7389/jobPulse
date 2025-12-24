@@ -4,7 +4,12 @@ from aiogram.fsm.context import FSMContext
 import logging
 
 from states.onboarding import OnboardingStates
-from keyboards.inline import get_experience_level_keyboard
+from keyboards.inline import (
+    get_experience_level_keyboard, 
+    get_category_keyboard, 
+    get_work_mode_keyboard, 
+    get_job_type_keyboard
+)
 from services.backend_api import create_user_profile
 
 router = Router()
@@ -138,14 +143,102 @@ async def process_years_experience(message: Message, state: FSMContext):
     # Store in FSM context
     await state.update_data(years_experience=years)
     
-    # Move to final step
+    # Move to Category Selection
     await message.answer(
         f"✅ Great! {years} years of experience.\n\n"
         "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "<b>Question 5 of 5: About You</b>\n\n"
+        "<b>Question 5 of 8: Target Category</b>\n\n"
+        "Which job category best describes what you are looking for?\n\n"
+        "👇 Select one category:",
+        reply_markup=get_category_keyboard(),
+        parse_mode="HTML"
+    )
+    await state.set_state(OnboardingStates.waiting_for_preferred_category)
+
+
+# ==================== Preferred Category Handler ====================
+@router.callback_query(OnboardingStates.waiting_for_preferred_category)
+async def process_preferred_category(callback: CallbackQuery, state: FSMContext):
+    """Process category selection"""
+    
+    category = callback.data
+    
+    categories = {
+        'software': 'Software Development',
+        'marketing': 'Marketing',
+        'design': 'Design',
+        'sales': 'Sales',
+        'finance': 'Finance',
+        'hr': 'Human Resources',
+        'customer_service': 'Customer Service',
+        'management': 'Management',
+        'other': 'Other',
+    }
+    
+    await state.update_data(preferred_category=category)
+    await callback.answer()
+    
+    await callback.message.edit_text(
+        f"✅ Category: <b>{categories.get(category, category)}</b>\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "<b>Question 6 of 8: Work Mode</b>\n\n"
+        "What is your preferred work mode?\n\n"
+        "👇 Select one (or Any/All):",
+        reply_markup=get_work_mode_keyboard(),
+        parse_mode="HTML"
+    )
+    await state.set_state(OnboardingStates.waiting_for_preferred_mode)
+
+
+# ==================== Preferred Mode Handler ====================
+@router.callback_query(OnboardingStates.waiting_for_preferred_mode)
+async def process_preferred_mode(callback: CallbackQuery, state: FSMContext):
+    """Process work mode selection"""
+    
+    mode = callback.data
+    modes = {
+        'remote': 'Remote',
+        'hybrid': 'Hybrid',
+        'onsite': 'On-site',
+        'all': 'Any / All'
+    }
+    
+    await state.update_data(preferred_mode=mode)
+    await callback.answer()
+    
+    await callback.message.edit_text(
+        f"✅ Work Mode: <b>{modes.get(mode, mode)}</b>\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "<b>Question 7 of 8: Job Type</b>\n\n"
+        "What type of job are you looking for?\n\n"
+        "👇 Select one (or Any/All):",
+        reply_markup=get_job_type_keyboard(),
+        parse_mode="HTML"
+    )
+    await state.set_state(OnboardingStates.waiting_for_preferred_type)
+
+
+# ==================== Preferred Type Handler ====================
+@router.callback_query(OnboardingStates.waiting_for_preferred_type)
+async def process_preferred_type(callback: CallbackQuery, state: FSMContext):
+    """Process job type selection"""
+    
+    job_type = callback.data
+    types = {
+        'full_time': 'Full-time',
+        'part_time': 'Part-time',
+        'all': 'Any / All'
+    }
+    
+    await state.update_data(preferred_type=job_type)
+    await callback.answer()
+    
+    await callback.message.edit_text(
+        f"✅ Job Type: <b>{types.get(job_type, job_type)}</b>\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "<b>Question 8 of 8: About You (Bio)</b>\n\n"
         "Tell me what kind of job you're looking for. This helps me find the best matches for you!\n\n"
-        "<i>Example: Looking for remote Marketing opportunities with a focus on social media. "
-        "Interested in fashion or tech domains.</i>\n\n"
+        "<i>Example: Looking for remote Marketing opportunities with a focus on social media.</i>\n\n"
         "💡 Write a short bio about what you're seeking:",
         parse_mode="HTML"
     )
@@ -188,13 +281,16 @@ async def process_bio(message: Message, state: FSMContext):
         await state.clear()
         
         await processing_msg.edit_text(
-            f"✅ <b>Profile Created Successfully!</b>\n\n"
+            f"✅ <b>Profile Saved Successfully!</b>\n\n"
             f"{response_message}\n\n"
             "━━━━━━━━━━━━━━━━━━━━━\n\n"
             "🎯 <b>Your Profile Summary:</b>\n"
             f"• <b>Skills:</b> {', '.join(user_data['skills'])}\n"
             f"• <b>Job Titles:</b> {', '.join(user_data['job_titles'])}\n"
             f"• <b>Experience:</b> {user_data['experience_level']} ({user_data['years_experience']} years)\n"
+            f"• <b>Category:</b> {user_data.get('preferred_category', 'Not set').title()}\n"
+            f"• <b>Mode:</b> {user_data.get('preferred_mode', 'Not set').title()}\n"
+            f"• <b>Job Type:</b> {user_data.get('preferred_type', 'Not set').title()}\n"
             f"• <b>Looking for:</b> {bio[:100]}{'...' if len(bio) > 100 else ''}\n\n"
             "🔔 I'll start monitoring channels and send you personalized job alerts!\n\n"
             "💡 <b>Next Steps:</b>\n"

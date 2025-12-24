@@ -10,6 +10,43 @@ def get_experience_level_keyboard() -> InlineKeyboardMarkup:
     ])
     return keyboard
 
+def get_category_keyboard() -> InlineKeyboardMarkup:
+    """Create inline keyboard for category selection"""
+    categories = [
+        ('software', 'Software Development'),
+        ('marketing', 'Marketing'),
+        ('design', 'Design'),
+        ('sales', 'Sales'),
+        ('finance', 'Finance'),
+        ('hr', 'Human Resources'),
+        ('customer_service', 'Customer Service'),
+        ('management', 'Management'),
+        ('other', 'Other'),
+    ]
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=label, callback_data=code)] for code, label in categories
+    ])
+    return keyboard
+
+def get_work_mode_keyboard() -> InlineKeyboardMarkup:
+    """Create inline keyboard for work mode selection"""
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Remote", callback_data="remote")],
+        [InlineKeyboardButton(text="Hybrid", callback_data="hybrid")],
+        [InlineKeyboardButton(text="On-site", callback_data="onsite")],
+        [InlineKeyboardButton(text="Any / All", callback_data="all")]
+    ])
+    return keyboard
+
+def get_job_type_keyboard() -> InlineKeyboardMarkup:
+    """Create inline keyboard for job type selection"""
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Full-time", callback_data="full_time")],
+        [InlineKeyboardButton(text="Part-time", callback_data="part_time")],
+        [InlineKeyboardButton(text="Any / All", callback_data="all")]
+    ])
+    return keyboard
+
 def get_channel_list_keyboard(channels: list) -> InlineKeyboardMarkup:
     """
     Create inline keyboard with removal buttons for each channel

@@ -61,9 +61,9 @@ async def create_user_profile(user_data: Dict[str, Any]) -> Tuple[bool, str]:
             async with httpx.AsyncClient(timeout=float(config.api_timeout)) as client:
                 response = await client.post(url, json=user_data)
                 
-                if response.status_code == 201:
-                    logger.info(f"Successfully created user profile for telegram_id={user_data.get('telegram_id')}")
-                    return True, "Profile created successfully! 🎉"
+                if response.status_code in [200, 201]:
+                    logger.info(f"Successfully created/updated user profile for telegram_id={user_data.get('telegram_id')}")
+                    return True, "Profile saved successfully! 🎉"
                 
                 elif response.status_code == 400:
                     # User might already exist or validation error

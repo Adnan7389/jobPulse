@@ -5,6 +5,9 @@ from apps.jobs.models import JobPost
 class Notification(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
     job = models.ForeignKey(JobPost, on_delete=models.CASCADE, related_name='notifications')
+    match_score = models.PositiveIntegerField(null=True, blank=True)
+    reasoning = models.TextField(blank=True)
+    source = models.CharField(max_length=50, default='keyword', help_text="Source of the match (e.g., gemini, keyword)")
     is_sent = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

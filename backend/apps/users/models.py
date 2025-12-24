@@ -35,5 +35,43 @@ class User(AbstractUser):
         help_text="Total years of professional experience"
     )
     
+    # Structured Filtering Preferences
+    preferred_category = models.CharField(
+        max_length=50,
+        choices=[
+            ('software', 'Software Development'),
+            ('marketing', 'Marketing'),
+            ('design', 'Design'),
+            ('sales', 'Sales'),
+            ('finance', 'Finance'),
+            ('hr', 'Human Resources'),
+            ('customer_service', 'Customer Service'),
+            ('management', 'Management'),
+            ('other', 'Other'),
+        ],
+        blank=True,
+        null=True
+    )
+    preferred_location = models.CharField(max_length=100, blank=True, null=True)
+    preferred_mode = models.CharField(
+        max_length=20,
+        choices=[
+            ('remote', 'Remote'),
+            ('hybrid', 'Hybrid'),
+            ('onsite', 'On-site'),
+            ('all', 'Any / All')
+        ],
+        default='all'
+    )
+    preferred_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('full_time', 'Full-time'),
+            ('part_time', 'Part-time'),
+            ('all', 'Any / All')
+        ],
+        default='all'
+    )
+    
     def __str__(self):
         return f"{self.username} ({self.telegram_id})"

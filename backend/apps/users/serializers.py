@@ -8,7 +8,8 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'telegram_id', 'skills', 'job_titles', 'preferences',
-            'bio', 'experience_level', 'years_experience'
+            'bio', 'experience_level', 'years_experience',
+            'preferred_category', 'preferred_location', 'preferred_mode', 'preferred_type'
         ]
         extra_kwargs = {
             'username': {'required': False}, 

@@ -9,5 +9,5 @@ class UserAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Basic Info', {'fields': ('username', 'telegram_id')}),
         ('Skills & Experience', {'fields': ('skills', 'job_titles', 'experience_level', 'years_experience', 'bio')}),
-        ('Preferences', {'fields': ('preferences',)}),
+        ('Preferences', {'fields': ('preferences', 'preferred_category', 'preferred_location', 'preferred_mode', 'preferred_type')}),
     )

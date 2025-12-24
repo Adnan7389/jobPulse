@@ -17,6 +17,22 @@ class UserListCreateView(generics.ListCreateAPIView):
             queryset = queryset.filter(telegram_id=telegram_id)
         return queryset
 
+    def create(self, request, *args, **kwargs):
+        """
+        Custom create that performs an update if the telegram_id already exists.
+        This provides an 'upsert' behavior for the bot onboarding.
+        """
+        telegram_id = request.data.get('telegram_id')
+        if telegram_id:
+            user = User.objects.filter(telegram_id=telegram_id).first()
+            if user:
+                serializer = self.get_serializer(user, data=request.data, partial=True)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                return Response(serializer.data)
+        
+        return super().create(request, *args, **kwargs)
+
 class UserDetailView(generics.RetrieveUpdateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer

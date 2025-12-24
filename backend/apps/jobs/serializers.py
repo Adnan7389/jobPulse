@@ -12,6 +12,7 @@ class JobPostSerializer(serializers.ModelSerializer):
         model = JobPost
         fields = [
             'id', 'channel_id', 'channel_name', 'message_id', 
-            'raw_text', 'clean_text', 'source_link', 'is_processed'
+            'raw_text', 'clean_text', 'source_link', 'is_processed',
+            'category', 'location', 'job_type', 'work_mode'
         ]
         read_only_fields = ['is_processed', 'clean_text', 'id']

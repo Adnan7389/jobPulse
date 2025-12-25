@@ -15,9 +15,9 @@ class MetadataExtractor:
     JOB_TYPES = ['full_time', 'part_time']
 
     @classmethod
-    async def extract(cls, job_post: JobPost) -> bool:
+    def extract(cls, job_post: JobPost) -> bool:
         """
-        Extracts metadata from raw_text and updates the job_post object.
+        Extracts metadata from raw_text and updates the job_post object (Synchronous).
         """
         prompt = f"""
         Extract job metadata from the following job posting text. 
@@ -34,7 +34,7 @@ class MetadataExtractor:
         """
 
         try:
-            metadata = await gemini_client.generate_json(prompt)
+            metadata = gemini_client.generate_json(prompt)
             if not metadata:
                 logger.warning(f"No metadata extracted for JobPost {job_post.id}")
                 return False

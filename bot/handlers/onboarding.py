@@ -40,7 +40,7 @@ async def process_skills(message: Message, state: FSMContext):
     await message.answer(
         f"✅ Great! Saved {len(skills)} skill(s).\n\n"
         "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "<b>Question 2 of 5: Job Titles</b>\n\n"
+        "<b>Question 2 of 8: Job Titles</b>\n\n"
         "What job roles are you interested in?\n\n"
         "<i>Example: Accountant, Sales Manager, Data Analyst, Developer</i>\n\n"
         "💡 Enter job titles separated by commas:",
@@ -74,7 +74,7 @@ async def process_job_titles(message: Message, state: FSMContext):
     await message.answer(
         f"✅ Great! Saved {len(job_titles)} job title(s).\n\n"
         "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "<b>Question 3 of 5: Experience Level</b>\n\n"
+        "<b>Question 3 of 8: Experience Level</b>\n\n"
         "What's your experience level?\n\n"
         "👇 Select from the options below:",
         reply_markup=get_experience_level_keyboard(),
@@ -108,7 +108,7 @@ async def process_experience_level(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         f"✅ Experience level: <b>{level_display.get(experience_level, experience_level)}</b>\n\n"
         "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "<b>Question 4 of 5: Years of Experience</b>\n\n"
+        "<b>Question 4 of 8: Years of Experience</b>\n\n"
         "How many years of professional experience do you have?\n\n"
         "💡 Enter a number (0-50):",
         parse_mode="HTML"

@@ -13,18 +13,21 @@ class GeminiClient:
             logger.warning("GEMINI_API_KEY not found in environment")
         else:
             genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
+            # Use gemini-3-flash-preview as it is available in this environment
+            self.model = genai.GenerativeModel('gemini-3-flash-preview')
 
-    async def generate_json(self, prompt: str) -> Optional[Dict[str, Any]]:
+    def generate_json(self, prompt: str) -> Optional[Dict[str, Any]]:
         """
-        Sends a prompt to Gemini and expects a JSON response.
+        Sends a prompt to Gemini and expects a JSON response (Synchronous).
         """
         if not self.api_key:
             return None
 
         try:
-            # We use a structured prompt to encourage JSON output
-            response = await self.model.generate_content_async(
+            # Use gemini-3-flash-preview for performance and availability
+            model = genai.GenerativeModel('gemini-3-flash-preview')
+            
+            response = model.generate_content(
                 prompt,
                 generation_config=genai.types.GenerationConfig(
                     response_mime_type="application/json",

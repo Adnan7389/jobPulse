@@ -20,17 +20,26 @@ class MetadataExtractor:
         Extracts metadata from raw_text and updates the job_post object (Synchronous).
         """
         prompt = f"""
-        Extract job metadata from the following job posting text. 
-        Return ONLY a JSON object with the following fields:
-        - category: One of {cls.CATEGORIES}
-        - location: City/Country or null if not found
-        - job_type: One of {cls.JOB_TYPES} or null if not found
-        - work_mode: One of {cls.WORK_MODES} or null if not found
+        Role: You are an expert Job Data Analyst at a premium job board.
+        Task: Extract structured metadata from the raw job posting text provided below.
+        
+        Guidelines:
+        - Category: Select the best fit from {cls.CATEGORIES}. Use 'software' for developer/engineer roles.
+        - Location: Extract City, Country (e.g., "Addis Ababa, Ethiopia"). Use null if unknown.
+        - Job Type: {cls.JOB_TYPES}
+        - Work Mode: {cls.WORK_MODES}
+        
+        Example 1 (Raw): "Hiring Python dev. remote. full time"
+        Example 1 (JSON): {{"category": "software", "location": null, "job_type": "full_time", "work_mode": "remote"}}
+        
+        Example 2 (Raw): "Sales manager needed in Dubai. Onsite. Part-time."
+        Example 2 (JSON): {{"category": "sales", "location": "Dubai, UAE", "job_type": "part_time", "work_mode": "onsite"}}
 
-        Job Text:
+        Job Text to Analyze:
         ---
         {job_post.raw_text}
         ---
+        Return ONLY valid JSON.
         """
 
         try:

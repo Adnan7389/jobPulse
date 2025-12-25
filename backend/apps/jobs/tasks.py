@@ -20,10 +20,10 @@ def process_new_job_post(job_id):
         logger.info(f"Starting processing for Job #{job_id}")
         
         # 1. AI Metadata Extraction
-        async_to_sync(MetadataExtractor.extract)(job)
+        MetadataExtractor.extract(job)
         
         # 2. Run Matching Orchestrator
-        async_to_sync(MatchOrchestrator.run)(job)
+        MatchOrchestrator.run(job)
         
         # Mark as processed
         job.is_processed = True

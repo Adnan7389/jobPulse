@@ -1,5 +1,6 @@
 import logging
 from django.db.models import Q
+from asgiref.sync import sync_to_async
 from typing import List
 from ..models import JobPost
 from apps.users.models import User
@@ -12,20 +13,21 @@ class MatchOrchestrator:
     MATCH_THRESHOLD = 75
 
     @classmethod
-    async def run(cls, job_post: JobPost):
+    def run(cls, job_post: JobPost):
         """
-        Coordinates the matching process for a new job post.
+        Coordinates the matching process for a new job post (Synchronous).
         """
         # 1. SQL Pre-filtering
         candidates = cls.get_candidates(job_post)
-        logger.info(f"Found {candidates.count()} candidates for JobPost {job_post.id} after pre-filtering")
+        logger.info(f"Found {len(candidates)} candidates for JobPost {job_post.id} after pre-filtering")
 
-        if not candidates.exists():
+        if not candidates:
             return
 
         # 2. Iterative Semantic Matching
         for user in candidates:
-            score, reasoning = await cls.get_semantic_match(user, job_post)
+            score, reasoning = cls.get_semantic_match(user, job_post)
+            logger.info(f"Semantic Match for User {user.id} on JobPost {job_post.id}: Score={score}")
             
             if score >= cls.MATCH_THRESHOLD:
                 # 3. Create Notification
@@ -37,6 +39,8 @@ class MatchOrchestrator:
                     source='gemini'
                 )
                 logger.info(f"Created notification for User {user.id} on JobPost {job_post.id} (Score: {score})")
+            else:
+                logger.info(f"Match score {score} below threshold {cls.MATCH_THRESHOLD} for User {user.id}")
 
     @classmethod
     def get_candidates(cls, job_post: JobPost):
@@ -62,13 +66,13 @@ class MatchOrchestrator:
         if job_post.job_type:
             query &= Q(preferred_type=job_post.job_type) | Q(preferred_type='all')
 
-        # 3. Apply preferences and return distinct users
-        return queryset.filter(query).distinct()
+        # 3. Apply preferences and return distinct users list
+        return list(queryset.filter(query).distinct())
 
     @classmethod
-    async def get_semantic_match(cls, user: User, job_post: JobPost) -> tuple[int, str]:
+    def get_semantic_match(cls, user: User, job_post: JobPost) -> tuple[int, str]:
         """
-        Calls Gemini to get a semantic match score and reasoning.
+        Calls Gemini to get a semantic match score and reasoning (Synchronous).
         """
         prompt = f"""
         Perform a Semantic Fit Analysis between the following User Profile and Job Posting.
@@ -89,7 +93,7 @@ class MatchOrchestrator:
         """
 
         try:
-            result = await gemini_client.generate_json(prompt)
+            result = gemini_client.generate_json(prompt)
             if result:
                 return int(result.get('score', 0)), result.get('reasoning', '')
         except Exception as e:

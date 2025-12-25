@@ -41,28 +41,29 @@ class MatchOrchestrator:
     @classmethod
     def get_candidates(cls, job_post: JobPost):
         """
-        Efficient SQL filtering based on Category, Location, Mode, and Type.
+        Efficient SQL filtering starting with channel subscription, 
+        then matching Category, Location, Mode, and Type.
         """
-        # Start with category match
+        # 1. Start with users subscribed to this specific channel
+        queryset = User.objects.filter(subscribed_channels=job_post.channel)
+
+        # 2. Build preferences query
         query = Q(preferred_category=job_post.category)
 
         # Missing Data & "ALL" Preference Rules for Location
         if job_post.location:
             query &= Q(preferred_location=job_post.location) | Q(preferred_location__isnull=True) | Q(preferred_location='')
-        # if job_post.location is None, we don't filter by location (Safety Rule)
 
         # Missing Data & "ALL" Preference Rules for Mode
         if job_post.work_mode:
             query &= Q(preferred_mode=job_post.work_mode) | Q(preferred_mode='all')
-        # if job_post.work_mode is None, we don't filter by mode (Safety Rule)
 
         # Missing Data & "ALL" Preference Rules for Job Type
         if job_post.job_type:
             query &= Q(preferred_type=job_post.job_type) | Q(preferred_type='all')
-        # if job_post.job_type is None, we don't filter by type (Safety Rule)
 
-        # Filter by users who subscribe to the channel
-        return User.objects.filter(query, subscribed_channels=job_post.channel).distinct()
+        # 3. Apply preferences and return distinct users
+        return queryset.filter(query).distinct()
 
     @classmethod
     async def get_semantic_match(cls, user: User, job_post: JobPost) -> tuple[int, str]:

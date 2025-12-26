@@ -60,13 +60,17 @@ services:
     build: ./bot
     volumes:
       - ./bot:/app
+    ports:
+      - "8081:8080"
     env_file:
       - .env
     environment:
-      - REDIS_HOST=127.0.0.1
-      - REDIS_PORT=6380
-      - BACKEND_URL=http://localhost:8001
-    network_mode: "host"
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - BACKEND_URL=http://web:8000
+    depends_on:
+      - redis
+      - web
     restart: unless-stopped
 
 volumes:

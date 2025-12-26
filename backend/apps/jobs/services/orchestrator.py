@@ -5,6 +5,7 @@ from typing import List
 from ..models import JobPost
 from apps.users.models import User
 from apps.notifications.models import Notification
+from apps.notifications.tasks import send_notification_to_user
 from shared.utils.ai_request import gemini_client
 
 logger = logging.getLogger(__name__)
@@ -31,14 +32,16 @@ class MatchOrchestrator:
             
             if score >= cls.MATCH_THRESHOLD:
                 # 3. Create Notification
-                Notification.objects.create(
+                notification = Notification.objects.create(
                     user=user,
                     job=job_post,
                     match_score=score,
                     reasoning=reasoning,
                     source='gemini'
                 )
-                logger.info(f"Created notification for User {user.id} on JobPost {job_post.id} (Score: {score})")
+                # 4. Dispatch for delivery (Fire-and-Forget)
+                send_notification_to_user.apply_async(args=[notification.id], countdown=2)
+                logger.info(f"Enqueued notification for User {user.id} on JobPost {job_post.id}")
             else:
                 logger.info(f"Match score {score} below threshold {cls.MATCH_THRESHOLD} for User {user.id}")
 

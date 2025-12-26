@@ -101,3 +101,6 @@ AUTH_USER_MODEL = 'users.User'
 # Celery
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://redis:6379/0')
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://redis:6379/0')
+
+# Bot Integration
+BOT_INTERNAL_URL = env('BOT_INTERNAL_URL', default='http://bot:8080')

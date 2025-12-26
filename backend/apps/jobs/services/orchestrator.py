@@ -89,9 +89,12 @@ class MatchOrchestrator:
         Calls Gemini to get a semantic match score and reasoning (Synchronous).
         """
         prompt = f"""
-        Role: You are a Senior Technical Recruiter with 10+ years of experience in talent acquisition.
-        Task: Evaluate the "Semantic Fit Score" between the User Profile and the Job Posting provided below.
+        Role: You are a Senior Technical Recruiter.
+        Task: Evaluate the fit between the User and the Job Posting.
         
+        CRITICAL: Write the "reasoning" directly TO the User (use "You", "Your skills", "Your experience"). 
+        Address them personally as if you are giving them advice on why this job is a good match for them.
+
         Evaluation Criteria:
         1. Hard Skills Match: Do the user's skills align with the job requirements?
         2. Experience Level: Does the user's years of experience match the seniority required?
@@ -101,13 +104,13 @@ class MatchOrchestrator:
         User: Python, Django, 5 years exp.
         Job: Senior Python Developer, Django required.
         Score: 95
-        Reasoning: "Excellent alignment in tech stack and experience level. The user is a direct fit for the senior requirements."
+        Reasoning: "You are an excellent fit for this role as your 5 years of Django experience perfectly align with the senior requirements."
         
         Example 2 (Poor Match):
         User: Junior Designer, 1 year exp.
         Job: Project Manager, 10 years exp.
         Score: 10
-        Reasoning: "Total mismatch in both role type and seniority. No relevant experience detected."
+        Reasoning: "This role requires significantly more management experience than you currently possess, and the field differs from your design background."
 
         User Profile:
         - Bio: {user.bio}

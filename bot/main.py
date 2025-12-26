@@ -8,6 +8,9 @@ from redis.asyncio import Redis
 
 from config import config
 from handlers import start, onboarding, channels, profile
+from services.notification_sender import NotificationSender
+from services.api import create_app
+from aiohttp import web
 
 # Configure logging
 logging.basicConfig(
@@ -49,6 +52,17 @@ async def main():
     
     logger.info("Bot started successfully")
     logger.info(f"Backend URL: {config.backend_url}")
+    
+    # Initialize Notification Service & API
+    notification_sender = NotificationSender(bot)
+    api_app = await create_app(notification_sender)
+    runner = web.AppRunner(api_app)
+    await runner.setup()
+    
+    # Listen on all interfaces (internal port)
+    site = web.TCPSite(runner, host='0.0.0.0', port=8080)
+    await site.start()
+    logger.info("✅ Internal Notification API started on port 8080")
 
     # Robust polling loop
     while True:

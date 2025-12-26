@@ -27,7 +27,7 @@ class NotificationSender:
         score_icon = "🟢" if score >= 85 else "🟡" if score >= 70 else "⚪"
         
         message = (
-            f"<b>{score_icon} JobPulse Match Found!</b>\n\n"
+            f"<b>{score_icon} JobLens Match Found!</b>\n\n"
             f"🏷️ <b>{category}</b> | <b>{mode}</b>\n"
             f"📍 {location}\n\n"
             f"🤖 <b>AI Match Score: {score}%</b>\n"

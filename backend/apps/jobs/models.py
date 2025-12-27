@@ -58,6 +58,10 @@ class JobPost(models.Model):
         blank=True,
         help_text="AI confidence score (0-100) for job classification"
     )
+    needs_metadata_extraction = models.BooleanField(
+        default=False,
+        help_text="True if AI failed during ingestion and requires retry"
+    )
     
     is_processed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

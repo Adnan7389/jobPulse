@@ -18,6 +18,15 @@ class MatchOrchestrator:
         """
         Coordinates the matching process for a new job post (Synchronous).
         """
+        # Defense-in-depth: Verify this is actually a job post
+        # This should already be filtered in the task, but we double-check
+        if not job_post.is_job:
+            logger.warning(
+                f"Orchestrator called on non-job post {job_post.id}. "
+                f"This should have been filtered earlier. Skipping."
+            )
+            return
+        
         # 1. SQL Pre-filtering
         candidates = cls.get_candidates(job_post)
         logger.info(f"Found {len(candidates)} candidates for JobPost {job_post.id} after pre-filtering")

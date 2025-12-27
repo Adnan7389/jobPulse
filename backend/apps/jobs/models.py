@@ -47,6 +47,18 @@ class JobPost(models.Model):
         null=True
     )
     
+    # Job Classification Fields
+    is_job = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text="Whether this post is classified as a job posting (vs announcement/spam)"
+    )
+    classification_confidence = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="AI confidence score (0-100) for job classification"
+    )
+    
     is_processed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -54,6 +66,7 @@ class JobPost(models.Model):
         unique_together = ('channel', 'message_id')
         indexes = [
             models.Index(fields=['is_processed', 'created_at']),
+            models.Index(fields=['is_job', 'created_at']),  # For filtering jobs only
         ]
 
     def __str__(self):

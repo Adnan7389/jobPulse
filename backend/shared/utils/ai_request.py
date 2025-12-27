@@ -1,4 +1,5 @@
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import os
 import json
 import logging
@@ -12,9 +13,8 @@ class GeminiClient:
         if not self.api_key:
             logger.warning("GEMINI_API_KEY not found in environment")
         else:
-            genai.configure(api_key=self.api_key)
-            # Use gemini-3-flash-preview as it is available in this environment
-            self.model = genai.GenerativeModel('gemini-3-flash-preview')
+            # Configure client with API key
+            self.client = genai.Client(api_key=self.api_key)
 
     def generate_json(self, prompt: str) -> Optional[Dict[str, Any]]:
         """
@@ -29,18 +29,16 @@ class GeminiClient:
         safe_prompt = prompt[:10000]
 
         try:
-            # Use gemini-3-flash-preview for performance and availability
-            model = genai.GenerativeModel('gemini-3-flash-preview')
-            
             # Part 5: Low Temperature for Judgment > Imagination
-            # Part 4: Hard time limit (timeout=30)
-            response = model.generate_content(
-                safe_prompt,
-                generation_config=genai.types.GenerationConfig(
+            # Note: The new SDK handles timeouts at the client level, not in config
+            # Using gemini-2.0-flash (stable, not experimental)
+            response = self.client.models.generate_content(
+                model='models/gemini-2.0-flash',  # Stable Gemini 2.0 model
+                contents=safe_prompt,
+                config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     temperature=0.1,  # Stable, repeatable results
-                ),
-                request_options={"timeout": 30}  # Prevent hanging workers
+                )
             )
             
             if response.text:

@@ -137,6 +137,7 @@ class JobClassifierAndExtractor:
                 # Default to treating as job (backward compatible)
                 job_post.is_job = True
                 job_post.classification_confidence = None
+                job_post.needs_metadata_extraction = True  # Mark for retry
                 job_post.save()
                 return True
 
@@ -165,6 +166,9 @@ class JobClassifierAndExtractor:
             job_post.job_type = result.get('job_type') if result.get('job_type') in cls.JOB_TYPES else None
             job_post.work_mode = result.get('work_mode') if result.get('work_mode') in cls.WORK_MODES else None
             
+            # Clear retry flag since extraction succeeded
+            job_post.needs_metadata_extraction = False
+            
             job_post.save()
             logger.info(
                 f"JobPost {job_post.id} classified as JOB "
@@ -177,6 +181,7 @@ class JobClassifierAndExtractor:
             # On error, default to treating as job (backward compatible)
             job_post.is_job = True
             job_post.classification_confidence = None
+            job_post.needs_metadata_extraction = True  # Mark for retry
             job_post.save()
             return True
 

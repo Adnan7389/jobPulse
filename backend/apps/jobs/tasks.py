@@ -49,7 +49,17 @@ def process_new_job_post(self, job_id):
             )
             return  # Early exit
         
-        # IS A JOB - Proceed with matching
+        # IS A JOB - Check if metadata extraction failed and needs retry
+        if job.needs_metadata_extraction:
+            logger.warning(f"AI extraction failed for Job #{job_id}. Scheduling retry in 1 hour.")
+            # Schedule retry task
+            retry_metadata_extraction.apply_async(
+                args=[job_id],
+                countdown=3600  # Retry in 1 hour
+            )
+            # We still proceed with matching if it's a job, but matches will be less accurate
+            # until metadata is extracted properly in the retry task.
+        
         logger.info(
             f"Job #{job_id} classified as JOB. "
             f"Proceeding to matching (confidence={job.classification_confidence}%)"
@@ -58,7 +68,8 @@ def process_new_job_post(self, job_id):
         # 2. Run Matching Orchestrator (only for verified jobs)
         MatchOrchestrator.run(job)
         
-        # Mark as processed
+        # Mark as processed (if we didn't schedule a retry, or even if we did, 
+        # it's 'processed' for now but might be updated later)
         job.is_processed = True
         job.save()
         logger.info(f"Finished processing for Job #{job_id}")
@@ -68,4 +79,42 @@ def process_new_job_post(self, job_id):
     except Exception as e:
         logger.error(f"Retryable error processing Job #{job_id}: {e}")
         # Re-raise to trigger Celery autoretry
+        raise e
+
+@shared_task(
+    bind=True,
+    max_retries=5,
+    default_retry_delay=3600, # Retry every hour
+    autoretry_for=(Exception,),
+    retry_backoff=True
+)
+def retry_metadata_extraction(self, job_id):
+    """
+    Background task to retry AI metadata extraction if it failed initially (e.g., quota).
+    If extraction succeeds, it also re-runs the matching pipeline for better accuracy.
+    """
+    try:
+        job = JobPost.objects.get(id=job_id)
+        if not job.needs_metadata_extraction:
+            logger.info(f"Job #{job_id} no longer needs metadata extraction. Skipping.")
+            return
+
+        logger.info(f"Retrying metadata extraction for Job #{job_id} (Attempt {self.request.retries + 1})")
+        
+        # Attempt extraction again
+        success = MetadataExtractor.extract(job)
+        
+        if success and not job.needs_metadata_extraction:
+            logger.info(f"Successfully extracted metadata for Job #{job_id} on retry.")
+            # Re-run matching pipeline now that we have better metadata (category, etc.)
+            MatchOrchestrator.run(job)
+            logger.info(f"Re-run matching orchestrator for Job #{job_id} with improved metadata.")
+        else:
+            logger.warning(f"Retry extraction for Job #{job_id} failed again or still missing metadata.")
+            # Celery will autoretry based on the decorator settings
+            
+    except JobPost.DoesNotExist:
+        logger.error(f"JobPost with id {job_id} does not exist for retry.")
+    except Exception as e:
+        logger.error(f"Error during metadata extraction retry for Job #{job_id}: {e}")
         raise e

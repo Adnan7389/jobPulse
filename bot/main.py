@@ -29,8 +29,17 @@ async def main():
     redis_url = os.getenv('REDIS_URL') or os.getenv('CELERY_BROKER_URL')
     
     if redis_url:
+        # If the URL is redis:// but we suspect it needs SSL (common with Upstash if copied blindly),
+        # we can try to force it, but better to rely on rediss://
+        # However, purely for robustness, we use from_url which usually handles valid schemes.
+        # If the user put "redis://...upstash.io...", Upstash often drops non-SSL connections.
+        if "upstash" in redis_url and not redis_url.startswith("rediss://"):
+             logger.warning("Detected Upstash URL but scheme is 'redis://'. Upgrading to 'rediss://' for SSL.")
+             redis_url = redis_url.replace("redis://", "rediss://")
+
         logger.info(f"Connecting to Redis using URL (masked): {redis_url[:15]}...")
-        redis_client = Redis.from_url(redis_url)
+        # ssl_cert_reqs=None allows self-signed or loose certs if needed, standard for cloud redis
+        redis_client = Redis.from_url(redis_url, ssl_cert_reqs=None)
     else:
         # Fallback to host/port (legacy)
         redis_host = os.getenv('REDIS_HOST', 'redis')

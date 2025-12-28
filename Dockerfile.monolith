@@ -1,0 +1,38 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Install system dependencies including supervisor
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    curl \
+    netcat-openbsd \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy backend requirements (assuming it covers most deps)
+# We might need to merge bot/scraper deps if they differ, but
+# based on context, they seem covered or minimal.
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy all source code
+COPY backend/ /app/
+COPY bot/ /app/bot/
+COPY scraper/ /app/scraper/
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Copy entrypoint (we reuse the backend one for migrations)
+COPY backend/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# We override the entrypoint to run migrations then start supervisor
+# But entrypoint.sh ends with exec "$@"
+# so we pass supervisord as the command.
+
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["/usr/bin/supervisord"]

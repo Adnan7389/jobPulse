@@ -20,4 +20,4 @@ COPY ./entrypoint.sh .
 COPY . .
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "core.wsgi:application"]
+CMD gunicorn --bind 0.0.0.0:$PORT core.wsgi:application

@@ -4,3 +4,5 @@ venv/
 .env.example
 .env
 __pycache__/
+
+backend/static/

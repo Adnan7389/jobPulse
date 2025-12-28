@@ -25,10 +25,17 @@ async def main():
     """Main bot entry point"""
     
     # Initialize Redis Storage
-    # Using environment variables for flexibility (supports host network mode)
-    redis_host = os.getenv('REDIS_HOST', 'redis')
-    redis_port = int(os.getenv('REDIS_PORT', 6379))
-    redis_client = Redis(host=redis_host, port=redis_port, db=0)
+    # Create Redis client from URL if available (handles SSL/auth automatically)
+    redis_url = os.getenv('REDIS_URL') or os.getenv('CELERY_BROKER_URL')
+    
+    if redis_url:
+        logger.info(f"Connecting to Redis using URL (masked): {redis_url[:15]}...")
+        redis_client = Redis.from_url(redis_url)
+    else:
+        # Fallback to host/port (legacy)
+        redis_host = os.getenv('REDIS_HOST', 'redis')
+        redis_port = int(os.getenv('REDIS_PORT', 6379))
+        redis_client = Redis(host=redis_host, port=redis_port, db=0)
     
     # Test Redis connection
     try:

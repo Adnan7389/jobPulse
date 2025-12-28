@@ -106,5 +106,13 @@ AUTH_USER_MODEL = 'users.User'
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://redis:6379/0')
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://redis:6379/0')
 
+if CELERY_BROKER_URL.startswith('rediss://'):
+    CELERY_BROKER_USE_SSL = {
+        'ssl_cert_reqs': 'NONE'
+    }
+    CELERY_REDIS_BACKEND_USE_SSL = {
+        'ssl_cert_reqs': 'NONE'
+    }
+
 # Bot Integration
 BOT_INTERNAL_URL = env('BOT_INTERNAL_URL', default='http://bot:8080')

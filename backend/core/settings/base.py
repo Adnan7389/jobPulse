@@ -106,6 +106,13 @@ AUTH_USER_MODEL = 'users.User'
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://redis:6379/0')
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://redis:6379/0')
 
+# Auto-fix: Upstash requires SSL (rediss://), but users often copy redis://
+if 'upstash' in CELERY_BROKER_URL and not CELERY_BROKER_URL.startswith('rediss://'):
+    CELERY_BROKER_URL = CELERY_BROKER_URL.replace('redis://', 'rediss://')
+
+if 'upstash' in CELERY_RESULT_BACKEND and not CELERY_RESULT_BACKEND.startswith('rediss://'):
+    CELERY_RESULT_BACKEND = CELERY_RESULT_BACKEND.replace('redis://', 'rediss://')
+
 if CELERY_BROKER_URL.startswith('rediss://'):
     CELERY_BROKER_USE_SSL = {
         'ssl_cert_reqs': 'NONE'

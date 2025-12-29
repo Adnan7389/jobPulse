@@ -76,7 +76,7 @@ async def main():
     await runner.setup()
     
     # Listen on all interfaces (internal port)
-    port = int(os.getenv("PORT", 8080))
+    port = int(os.getenv("BOT_PORT", 8080))
     site = web.TCPSite(runner, host='0.0.0.0', port=port)
     await site.start()
     logger.info("✅ Internal Notification API started on port 8080")

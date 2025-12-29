@@ -107,26 +107,34 @@ AUTH_USER_MODEL = 'users.User'
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://redis:6379/0')
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://redis:6379/0')
 
-# Auto-fix: Upstash requires SSL (rediss://), but users often copy redis://
-if 'upstash' in CELERY_BROKER_URL and not CELERY_BROKER_URL.startswith('rediss://'):
-    CELERY_BROKER_URL = CELERY_BROKER_URL.replace('redis://', 'rediss://')
-    # Update os.environ so Celery worker can see the fixed value if it reads from env
+# Auto-fix: Upstash requires SSL (rediss://)
+if 'upstash' in CELERY_BROKER_URL:
+    if not CELERY_BROKER_URL.startswith('rediss://'):
+        CELERY_BROKER_URL = CELERY_BROKER_URL.replace('redis://', 'rediss://')
+    
+    # Celery Result Backend is strict: needs ssl_cert_reqs in the URL or specific options
+    if 'ssl_cert_reqs' not in CELERY_BROKER_URL:
+        separator = '&' if '?' in CELERY_BROKER_URL else '?'
+        CELERY_BROKER_URL = f"{CELERY_BROKER_URL}{separator}ssl_cert_reqs=none"
+    
     os.environ['CELERY_BROKER_URL'] = CELERY_BROKER_URL
 
-if 'upstash' in CELERY_RESULT_BACKEND and not CELERY_RESULT_BACKEND.startswith('rediss://'):
-    CELERY_RESULT_BACKEND = CELERY_RESULT_BACKEND.replace('redis://', 'rediss://')
+if 'upstash' in CELERY_RESULT_BACKEND:
+    if not CELERY_RESULT_BACKEND.startswith('rediss://'):
+        CELERY_RESULT_BACKEND = CELERY_RESULT_BACKEND.replace('redis://', 'rediss://')
+    
+    if 'ssl_cert_reqs' not in CELERY_RESULT_BACKEND:
+        separator = '&' if '?' in CELERY_RESULT_BACKEND else '?'
+        CELERY_RESULT_BACKEND = f"{CELERY_RESULT_BACKEND}{separator}ssl_cert_reqs=none"
+        
     os.environ['CELERY_RESULT_BACKEND'] = CELERY_RESULT_BACKEND
 
 if CELERY_BROKER_URL.startswith('rediss://'):
-    CELERY_BROKER_USE_SSL = {
-        'ssl_cert_reqs': 'NONE'
-    }
-    CELERY_REDIS_BACKEND_USE_SSL = {
-        'ssl_cert_reqs': 'NONE'
-    }
+    CELERY_BROKER_USE_SSL = {'ssl_cert_reqs': 'none'}
+    CELERY_RESULT_BACKEND_USE_SSL = {'ssl_cert_reqs': 'none'}
 else:
     CELERY_BROKER_USE_SSL = False
-    CELERY_REDIS_BACKEND_USE_SSL = False
+    CELERY_RESULT_BACKEND_USE_SSL = False
 
 # Bot Integration
 BOT_INTERNAL_URL = env('BOT_INTERNAL_URL', default='http://127.0.0.1:8080')

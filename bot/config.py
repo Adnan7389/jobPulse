@@ -25,7 +25,8 @@ class Config:
 # Initialize configuration
 config = Config(
     bot_token=os.getenv("BOT_TOKEN", ""),
-    backend_url=os.getenv("BACKEND_URL", "http://web:8000"),
+    # On Render Monolith, use localhost and dynamic port if BACKEND_URL not set
+    backend_url=os.getenv("BACKEND_URL", f"http://localhost:{os.getenv('PORT', '8000')}"),
     api_timeout=int(os.getenv("API_TIMEOUT", "10")),
     max_retries=int(os.getenv("MAX_RETRIES", "3")),
     retry_delay=int(os.getenv("RETRY_DELAY", "1")),

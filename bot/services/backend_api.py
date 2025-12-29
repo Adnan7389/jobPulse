@@ -80,7 +80,7 @@ async def create_user_profile(user_data: Dict[str, Any]) -> Tuple[bool, str]:
                 
                 else:
                     logger.error(f"Unexpected status code {response.status_code}: {response.text}")
-                    return False, "An unexpected error occurred. Please try again later."
+                    return False, f"Unexpected error ({response.status_code}). Please try again later."
         
         except httpx.ConnectError:
             logger.error(f"Connection error on attempt {attempt + 1}/{max_retries}")
@@ -103,7 +103,7 @@ async def create_user_profile(user_data: Dict[str, Any]) -> Tuple[bool, str]:
         
         except Exception as e:
             logger.exception(f"Unexpected error during API call: {e}")
-            return False, "An unexpected error occurred. Please try again later."
+            return False, f"Unexpected error: {str(e)[:50]}"
     
     return False, "Failed to create profile after multiple attempts. Please try again later."
 

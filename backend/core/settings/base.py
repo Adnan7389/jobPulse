@@ -11,7 +11,8 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-test-key-replace-me')
 DEBUG = env.bool('DEBUG', default=True)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=['http://localhost:8002'])
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=['http://localhost:8002', 'http://127.0.0.1:8002', 'https://joblens-50im.onrender.com'])
+CORS_ALLOW_ALL_ORIGINS = True  # For bot-backend communication if needed
 
 # Application definition
 INSTALLED_APPS = [
@@ -109,9 +110,12 @@ CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://redis:6379
 # Auto-fix: Upstash requires SSL (rediss://), but users often copy redis://
 if 'upstash' in CELERY_BROKER_URL and not CELERY_BROKER_URL.startswith('rediss://'):
     CELERY_BROKER_URL = CELERY_BROKER_URL.replace('redis://', 'rediss://')
+    # Update os.environ so Celery worker can see the fixed value if it reads from env
+    os.environ['CELERY_BROKER_URL'] = CELERY_BROKER_URL
 
 if 'upstash' in CELERY_RESULT_BACKEND and not CELERY_RESULT_BACKEND.startswith('rediss://'):
     CELERY_RESULT_BACKEND = CELERY_RESULT_BACKEND.replace('redis://', 'rediss://')
+    os.environ['CELERY_RESULT_BACKEND'] = CELERY_RESULT_BACKEND
 
 if CELERY_BROKER_URL.startswith('rediss://'):
     CELERY_BROKER_USE_SSL = {
@@ -120,6 +124,9 @@ if CELERY_BROKER_URL.startswith('rediss://'):
     CELERY_REDIS_BACKEND_USE_SSL = {
         'ssl_cert_reqs': 'NONE'
     }
+else:
+    CELERY_BROKER_USE_SSL = False
+    CELERY_REDIS_BACKEND_USE_SSL = False
 
 # Bot Integration
-BOT_INTERNAL_URL = env('BOT_INTERNAL_URL', default='http://bot:8080')
+BOT_INTERNAL_URL = env('BOT_INTERNAL_URL', default='http://127.0.0.1:8080')

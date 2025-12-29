@@ -24,6 +24,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ /app/
 COPY bot/ /app/bot/
 COPY scraper/ /app/scraper/
+
+# Set dummy environment variables for build steps (like collectstatic)
+ENV SECRET_KEY="build-time-secret"
+ENV DEBUG="False"
+ENV DATABASE_URL="sqlite:///db.sqlite3"
+
+# Run collectstatic at build time to save runtime memory
+RUN python manage.py collectstatic --no-input
+
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Copy entrypoint (we reuse the backend one for migrations)

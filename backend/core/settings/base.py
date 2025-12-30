@@ -11,7 +11,11 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-test-key-replace-me')
 DEBUG = env.bool('DEBUG', default=True)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=['http://localhost:8002', 'http://127.0.0.1:8002', 'https://joblens-50im.onrender.com'])
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=['http://localhost:8002', 'http://127.0.0.1:8002'])
+# Allow dynamic origins if they start with http:// or https://
+for origin in env.list('CSRF_TRUSTED_ORIGINS_EXTRA', default=[]):
+    if origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(origin)
 CORS_ALLOW_ALL_ORIGINS = True  # For bot-backend communication if needed
 
 # Application definition

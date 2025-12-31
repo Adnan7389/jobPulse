@@ -38,8 +38,13 @@ async def main():
              redis_url = redis_url.replace("redis://", "rediss://")
 
         logger.info(f"Connecting to Redis using URL (masked): {redis_url[:15]}...")
-        # ssl_cert_reqs=None allows self-signed or loose certs if needed, standard for cloud redis
-        redis_client = Redis.from_url(redis_url, ssl_cert_reqs=None)
+        # IMPORTANT: Only pass SSL parameters if the URL uses rediss://
+        # Otherwise, the redis library will throw an "unexpected keyword argument" error.
+        redis_kwargs = {}
+        if redis_url.startswith('rediss://'):
+            redis_kwargs['ssl_cert_reqs'] = None
+            
+        redis_client = Redis.from_url(redis_url, **redis_kwargs)
     else:
         # Fallback to host/port (legacy)
         redis_host = os.getenv('REDIS_HOST', 'redis')

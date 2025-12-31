@@ -16,6 +16,6 @@ fi
 echo "📦 Running Migrations..."
 python manage.py migrate --no-input || echo "⚠️ Migration failed (checking if DB is ready...)"
 
-# collectstatic is now moved to Dockerfile build phase for memory efficiency
-echo "✨ Starting Supervisor..."
+# Run the CMD
+echo "✨ Starting Web Server..."
 exec "$@"

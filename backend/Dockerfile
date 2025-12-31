@@ -19,5 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ./entrypoint.sh .
 COPY . .
 
+# Default PORT to 8000 for internal Docker communication
+ENV PORT=8000
+
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD gunicorn --bind 0.0.0.0:$PORT core.wsgi:application
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "core.wsgi:application"]

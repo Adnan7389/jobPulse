@@ -39,9 +39,9 @@ async def main():
     @client.on(events.NewMessage)
     async def handle_new_message(event):
         try:
-            # 1. Block DMs, Groups, and Private chats (Hard security boundary)
-            # Use Telethon metadata to ensure we only process broadcast channels.
+            # 1. Block DMs, Groups, and Private chats
             if not event.is_channel:
+                logger.debug(f"Skipping non-channel message from ID: {event.chat_id}")
                 return
                 
             # 2. Public-Channel-Only Guard
@@ -49,25 +49,32 @@ async def main():
             # absolute compliance with Telegram TOS and data privacy.
             chat = await event.get_chat()
             if not getattr(chat, 'broadcast', False) or not getattr(chat, 'username', None):
+                logger.debug(f"Skipping non-public channel: {getattr(chat, 'title', 'Unknown')}")
                 return
                 
             username = chat.username
 
-            # 3. Check Denylist (Skip ingestion if on blocked list)
+            # 3. Check Denylist
             if username in config.DENYLIST:
+                logger.debug(f"Skipping denylisted channel: {username}")
                 return
 
             # 4. Enforce Source Attribution (Check tracked channels)
             if username in channel_map:
                 channel_id = channel_map[username]
-                logger.info(f"New message from tracked channel: {username}")
+                logger.info(f"📥 New message detected in tracked channel: {username}")
                 
                 job_data = MessageHandler.format_job_data(event.message, channel_id, username)
                 if job_data:
                     # Push to API immediately
                     success = await asyncio.to_thread(Uploader.send_job_post, job_data)
                     if success:
-                        logger.info(f"Successfully ingested job from {username} (Message ID: {event.message.id})")
+                        logger.info(f"✅ Successfully ingested job from {username} (Message ID: {event.message.id})")
+                else:
+                    logger.debug(f"Message from {username} had no text (likely a photo/video without caption).")
+            else:
+                # This log helps us see if we are missing any channels
+                logger.debug(f"Message from untracked channel: {username}")
             
         except Exception as e:
             logger.error(f"Error handling new message event: {e}")
@@ -88,11 +95,28 @@ async def main():
     # 3. Keep the process alive
     await client.run_until_disconnected()
 
+async def scrape_history(client, username, channel_id, limit=10):
+    """Fetch and process historical messages from a channel."""
+    try:
+        logger.info(f"📜 Processing historical messages for: {username} (limit={limit})...")
+        count = 0
+        async for message in client.iter_messages(username, limit=limit):
+            job_data = MessageHandler.format_job_data(message, channel_id, username)
+            if job_data:
+                success = await asyncio.to_thread(Uploader.send_job_post, job_data)
+                if success:
+                    count += 1
+        
+        if count > 0:
+            logger.info(f"✅ Synced {count} historical messages from {username}")
+    except Exception as e:
+        logger.error(f"Failed to scrape history for {username}: {e}")
+
 async def refresh_channels(client):
     """Fetch tracked channels from API and join any new ones."""
     global channel_map
     try:
-        logger.info("Refreshing target channels from API...")
+        logger.info("Keep-alive: Refreshing target channels from API...")
         channels = await asyncio.to_thread(Uploader.fetch_channels)
         
         if not channels:
@@ -110,7 +134,9 @@ async def refresh_channels(client):
                 # Ensure joined
                 success = await ChannelJoiner.ensure_joined(client, username)
                 if success:
-                    logger.info(f"Successfully joined and started monitoring: {username} (ID: {channel_id})")
+                    logger.info(f"🆕 Monitoring started: {username} (ID: {channel_id})")
+                    # Run initial historical sync
+                    await scrape_history(client, username, channel_id)
                     new_channels_count += 1
                 else:
                     # Remove from map if join failed so we retry next time
@@ -119,7 +145,7 @@ async def refresh_channels(client):
                 logger.warning(f"Channel ID {channel_id} has no username. Skipping.")
                 
         if new_channels_count > 0:
-            logger.info(f"Added {new_channels_count} new channels to monitor.")
+            logger.info(f"🚀 Integrated {new_channels_count} new channels with historical sync.")
             
     except Exception as e:
         logger.error(f"Error during channel refresh: {e}")

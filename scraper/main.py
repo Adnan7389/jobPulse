@@ -79,31 +79,57 @@ async def main():
         return
 
     logger.info("Telegram Client connected successfully.")
-
-    # 1. Fetch tracked channels from API
-    logger.info("Fetching target channels from API...")
-    channels = await asyncio.to_thread(Uploader.fetch_channels)
     
-    if not channels:
-        logger.warning("No channels returned from API. Scraper will wait for new messages but might not have filters.")
+    # Start the dynamic channel monitor in the background
+    asyncio.create_task(channel_monitor_loop(client))
     
-    # 2. Join channels and populate map
-    for channel in channels:
-        username = channel.get('channel_username')
-        channel_id = channel.get('id')
-        
-        if username:
-            channel_map[username] = channel_id
-            # Ensure bot is a member
-            await ChannelJoiner.ensure_joined(client, username)
-            logger.info(f"Monitoring: {username} (ID: {channel_id})")
-        else:
-            logger.warning(f"Channel ID {channel_id} has no username. Cannot monitor.")
-
-    logger.info(f"Initialization complete. Monitoring {len(channel_map)} channels. Listening for events...")
+    logger.info("Initialization complete. Scraper is running and monitoring for new channels...")
     
     # 3. Keep the process alive
     await client.run_until_disconnected()
+
+async def refresh_channels(client):
+    """Fetch tracked channels from API and join any new ones."""
+    global channel_map
+    try:
+        logger.info("Refreshing target channels from API...")
+        channels = await asyncio.to_thread(Uploader.fetch_channels)
+        
+        if not channels:
+            logger.warning("No channels returned from API.")
+            return
+
+        new_channels_count = 0
+        for channel in channels:
+            username = channel.get('channel_username')
+            channel_id = channel.get('id')
+            
+            if username and username not in channel_map:
+                # New channel detected!
+                channel_map[username] = channel_id
+                # Ensure joined
+                success = await ChannelJoiner.ensure_joined(client, username)
+                if success:
+                    logger.info(f"Successfully joined and started monitoring: {username} (ID: {channel_id})")
+                    new_channels_count += 1
+                else:
+                    # Remove from map if join failed so we retry next time
+                    del channel_map[username]
+            elif not username:
+                logger.warning(f"Channel ID {channel_id} has no username. Skipping.")
+                
+        if new_channels_count > 0:
+            logger.info(f"Added {new_channels_count} new channels to monitor.")
+            
+    except Exception as e:
+        logger.error(f"Error during channel refresh: {e}")
+
+async def channel_monitor_loop(client):
+    """Background loop to periodically refresh channels."""
+    while True:
+        await refresh_channels(client)
+        # Wait 5 minutes (300 seconds) before checking again
+        await asyncio.sleep(300)
 
 if __name__ == '__main__':
     try:

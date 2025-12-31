@@ -108,7 +108,9 @@ async def scrape_history(client, username, channel_id, limit=10):
                     count += 1
         
         if count > 0:
-            logger.info(f"✅ Synced {count} historical messages from {username}")
+            logger.info(f"✅ Synced {count} historical jobs from {username}")
+        else:
+            logger.info(f"ℹ️ No new jobs found in the last {limit} messages of {username}")
     except Exception as e:
         logger.error(f"Failed to scrape history for {username}: {e}")
 
@@ -134,7 +136,7 @@ async def refresh_channels(client):
                 # Ensure joined
                 success = await ChannelJoiner.ensure_joined(client, username)
                 if success:
-                    logger.info(f"🆕 Monitoring started: {username} (ID: {channel_id})")
+                    logger.info(f"🆕 NEW CHANNEL DETECTED: {username} (ID: {channel_id})")
                     # Run initial historical sync
                     await scrape_history(client, username, channel_id)
                     new_channels_count += 1

@@ -16,6 +16,9 @@ fi
 echo "📦 Running Migrations..."
 python manage.py migrate --no-input || echo "⚠️ Migration failed (checking if DB is ready...)"
 
+echo "🧹 Collecting Static Files..."
+python manage.py collectstatic --no-input
+
 # Run the CMD
 echo "✨ Starting Web Server..."
 exec "$@"

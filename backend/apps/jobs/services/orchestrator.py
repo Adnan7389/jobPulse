@@ -34,25 +34,13 @@ class MatchOrchestrator:
         if not candidates:
             return
 
-        # 2. Iterative Semantic Matching
+        # 2. Iterative Semantic Matching (Throttled via Celery)
+        from .tasks import process_semantic_match
+        
         for user in candidates:
-            score, reasoning = cls.get_semantic_match(user, job_post)
-            logger.info(f"Semantic Match for User {user.id} on JobPost {job_post.id}: Score={score}")
-            
-            if score >= cls.MATCH_THRESHOLD:
-                # 3. Create Notification
-                notification = Notification.objects.create(
-                    user=user,
-                    job=job_post,
-                    match_score=score,
-                    reasoning=reasoning,
-                    source='gemini'
-                )
-                # 4. Dispatch for delivery (Fire-and-Forget)
-                send_notification_to_user.apply_async(args=[notification.id], countdown=2)
-                logger.info(f"Enqueued notification for User {user.id} on JobPost {job_post.id}")
-            else:
-                logger.info(f"Match score {score} below threshold {cls.MATCH_THRESHOLD} for User {user.id}")
+            # Move individual matching to its own rate-limited task
+            process_semantic_match.delay(user.id, job_post.id)
+            logger.info(f"Queued semantic match task for User {user.id} on JobPost {job_post.id}")
 
     @classmethod
     def get_candidates(cls, job_post: JobPost):

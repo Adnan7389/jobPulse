@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 @shared_task(
     bind=True,
     max_retries=3,
-    default_retry_delay=60,  # Part 4: Retries must be delayed (initial 60s)
+    default_retry_delay=60,
     autoretry_for=(Exception,),
-    retry_backoff=True,      # Part 4: Use backoff to reduce cascading failures
-    retry_jitter=True,       # Add jitter to avoid thundering herd on recovery
-    rate_limit='10/m'        # Limit to 10 tasks per minute to respect Gemini Free Tier
+    retry_backoff=True,
+    retry_jitter=True,
+    rate_limit='5/m'         # Lowered to 5/m to leave room for matching tasks
 )
 def process_new_job_post(self, job_id):
     """
@@ -52,14 +52,13 @@ def process_new_job_post(self, job_id):
         
         # IS A JOB - Check if metadata extraction failed and needs retry
         if job.needs_metadata_extraction:
-            logger.warning(f"AI extraction failed for Job #{job_id}. Scheduling retry in 1 hour.")
+            logger.warning(f"AI extraction failed for Job #{job_id}. Skipping matching until metadata is available.")
             # Schedule retry task
             retry_metadata_extraction.apply_async(
                 args=[job_id],
                 countdown=3600  # Retry in 1 hour
             )
-            # We still proceed with matching if it's a job, but matches will be less accurate
-            # until metadata is extracted properly in the retry task.
+            return # IMPORTANT: Do not proceed to matching if metadata is missing/quota hit
         
         logger.info(
             f"Job #{job_id} classified as JOB. "
@@ -85,10 +84,10 @@ def process_new_job_post(self, job_id):
 @shared_task(
     bind=True,
     max_retries=5,
-    default_retry_delay=3600, # Retry every hour
+    default_retry_delay=3600,
     autoretry_for=(Exception,),
     retry_backoff=True,
-    rate_limit='5/m'          # Limit to 5 tasks per minute
+    rate_limit='2/m'          # Lowered to 2/m to be very conservative on retries
 )
 def retry_metadata_extraction(self, job_id):
     """
@@ -119,4 +118,45 @@ def retry_metadata_extraction(self, job_id):
         logger.error(f"JobPost with id {job_id} does not exist for retry.")
     except Exception as e:
         logger.error(f"Error during metadata extraction retry for Job #{job_id}: {e}")
+        raise e
+
+@shared_task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    rate_limit='10/m'         # Limit matching requests to 10 per minute
+)
+def process_semantic_match(self, user_id, job_id):
+    """
+    Independent task to perform semantic matching for a single user/job pair.
+    This allows us to throttle AI matching requests separately from extraction.
+    """
+    from apps.users.models import User
+    from apps.notifications.models import Notification
+    from apps.notifications.tasks import send_notification_to_user
+    
+    try:
+        user = User.objects.get(id=user_id)
+        job = JobPost.objects.get(id=job_id)
+        
+        # Call the orchestrator logic for single user matching
+        score, reasoning = MatchOrchestrator.get_semantic_match(user, job)
+        
+        if score >= MatchOrchestrator.MATCH_THRESHOLD:
+            notification = Notification.objects.create(
+                user=user,
+                job=job,
+                match_score=score,
+                reasoning=reasoning,
+                source='gemini'
+            )
+            send_notification_to_user.apply_async(args=[notification.id], countdown=2)
+            logger.info(f"Notification created for User {user_id} on Job {job_id}")
+            
+    except (User.DoesNotExist, JobPost.DoesNotExist):
+        logger.error(f"User {user_id} or Job {job_id} missing for matching.")
+    except Exception as e:
+        logger.error(f"Match task failed for User {user_id} on Job {job_id}: {e}")
         raise e

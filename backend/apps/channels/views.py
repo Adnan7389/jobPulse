@@ -25,6 +25,22 @@ class ChannelCreateListView(generics.ListCreateAPIView):
         # Since bot uses API without Auth Token (it passes ID manually), we assume it's in request.data
         user_id = request.data.get('added_by')
         
+        if user_id:
+            from apps.users.models import User
+            try:
+                user = User.objects.get(id=user_id)
+                # Check subscription limit
+                if user.subscribed_channels.count() >= 5:
+                    # Check if they are already subscribed to THIS channel (to allow updates/idempotency)
+                    channel_username = serializer.validated_data.get('channel_username')
+                    if not user.subscribed_channels.filter(channel_username=channel_username).exists():
+                        return Response(
+                            {"error": "You can only monitor up to 5 channels."}, 
+                            status=400
+                        )
+            except User.DoesNotExist:
+                return Response({"error": "User not found."}, status=404)
+
         channel_username = serializer.validated_data.get('channel_username')
         name = serializer.validated_data.get('name')
         

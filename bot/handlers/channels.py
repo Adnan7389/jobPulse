@@ -25,14 +25,13 @@ async def cmd_add_channel(message: Message, state: FSMContext):
     logger.info(f"User {message.from_user.id} requested /addchannel")
     
     await message.answer(
-        "📢 <b>Add a Telegram Channel to Monitor</b>\n\n"
-        "I'll start monitoring job postings from this channel and send you personalized matches.\n\n"
-        "<i>Examples of valid formats:</i>\n"
-        "• @ethiojobs\n"
-        "• https://t.me/ethiojobs\n"
-        "• t.me/ethiojobs\n"
-        "• ethiojobs\n\n"
-        "💡 <b>Enter the channel username or link:</b>",
+        "📢 <b>Add Job Channels</b>\n\n"
+        "I'll monitor these channels and notify you of any job matches that fit your profile.\n\n"
+        "💡 <b>Batch Add</b>: You can add up to <b>5 channels</b> at once, separated by commas.\n\n"
+        "<i>Valid Formats:</i>\n"
+        "• <code>@digitaljobs_et, @freelance_ethio</code>\n"
+        "• <code>t.me/geezjobs_ethiopia, @utopiajobs</code>\n\n"
+        "� <b>Enter channel usernames or links:</b>",
         parse_mode="HTML"
     )
     
@@ -44,89 +43,79 @@ async def cmd_add_channel(message: Message, state: FSMContext):
 # ==================== Process Channel Input ====================
 @router.message(ChannelStates.waiting_for_channel)
 async def process_channel_input(message: Message, state: FSMContext):
-    """Process channel input and add to backend"""
+    """Process channel input and add to backend (supports batch)"""
     logger.info(f"Processing channel input: {message.text}")
     
-    channel_input = message.text.strip()
+    raw_input = message.text.strip()
     
-    # Validate input is not empty
-    if not channel_input:
-        await message.answer(
-            "⚠️ Please provide a valid channel username or link.\n\n"
-            "<i>Example: @ethiojobs</i>",
-            parse_mode="HTML"
-        )
+    if not raw_input:
+        await message.answer("⚠️ Please provide at least one channel username or link.")
         return
+
+    # Split by commas for batch addition
+    inputs = [i.strip() for i in raw_input.split(',') if i.strip()]
     
-    # Normalize the channel username
-    try:
-        channel_username = normalize_channel_username(channel_input)
-    except Exception as e:
-        logger.error(f"Error normalizing channel: {e}")
-        await message.answer(
-            "❌ Invalid channel format. Please try again.\n\n"
-            "<i>Example: @ethiojobs or t.me/ethiojobs</i>",
-            parse_mode="HTML"
-        )
+    if not inputs:
+        await message.answer("⚠️ Please provide at least one valid channel.")
         return
-    
-    # Validate channel username format (alphanumeric and underscores)
-    if not re.match(r'^[a-zA-Z0-9_]+$', channel_username):
-        await message.answer(
-            "❌ Invalid channel username. Channel names can only contain letters, numbers, and underscores.\n\n"
-            "<i>Example: @ethiojobs</i>",
-            parse_mode="HTML"
-        )
-        return
-    
+
+    # Limit batch to 5 to prevent abuse
+    if len(inputs) > 5:
+        await message.answer("⚠️ You can add at most 5 channels at once. Processing the first 5...")
+        inputs = inputs[:5]
+
     # Show processing message
-    processing_msg = await message.answer("⏳ Adding channel...")
+    processing_msg = await message.answer(f"⏳ Processing {len(inputs)} channel(s)...")
     
-    # Get user profile to get user ID
     telegram_id = message.from_user.id
-    success, user_data, msg = await get_user_profile(telegram_id)
+    success_profile, user_data, msg = await get_user_profile(telegram_id)
     
-    if not success:
+    if not success_profile:
         await processing_msg.edit_text(
-            "❌ <b>Profile Not Found</b>\n\n"
-            "Please complete your profile setup first with /start",
+            "❌ <b>Profile Not Found</b>\n\nPlease complete your profile with /start first.",
             parse_mode="HTML"
         )
         await state.clear()
         return
-    
+
     user_id = user_data.get('id')
+    results = []
     
-    # Prepare channel data
-    # Note: We're not fetching channel_id from Telegram API here (that's the Scraper's job)
-    # The bot does lightweight validation, Scraper does authoritative verification
-    channel_data = {
-        "name": f"@{channel_username}",  # Human readable name
-        "channel_username": channel_username,  # Without @
-        "added_by": user_id
-    }
+    for channel_input in inputs:
+        try:
+            channel_username = normalize_channel_username(channel_input)
+            
+            if not re.match(r'^[a-zA-Z0-9_]+$', channel_username):
+                results.append(f"❌ <code>{channel_input}</code>: Invalid format")
+                continue
+            
+            channel_data = {
+                "name": f"@{channel_username}",
+                "channel_username": channel_username,
+                "added_by": user_id
+            }
+            
+            success, message_text, _ = await add_channel(channel_data)
+            
+            if success:
+                results.append(f"✅ @{channel_username}: Added")
+            elif "limit" in message_text.lower():
+                results.append(f"🚫 @{channel_username}: Limit reached (Max 5)")
+                # Stop processing if limit is reached
+                break
+            else:
+                results.append(f"❌ @{channel_username}: {message_text}")
+                
+        except Exception as e:
+            logger.error(f"Error processing channel {channel_input}: {e}")
+            results.append(f"❌ <code>{channel_input}</code>: Error")
+
+    # Construct summary message
+    summary = "📊 <b>Batch Addition Results</b>\n\n"
+    summary += "\n".join(results)
+    summary += "\n\n💡 Use /listchannels to manage your monitored sources."
     
-    # Add channel via API
-    success, message_text, channel_id = await add_channel(channel_data)
-    
-    if success:
-        await processing_msg.edit_text(
-            f"✅ <b>Channel Added Successfully!</b>\n\n"
-            f"📢 <b>Channel:</b> @{channel_username}\n\n"
-            f"I'll start monitoring this channel for job postings and send you personalized alerts!\n\n"
-            f"💡 <b>Tip:</b> Use /listchannels to see all your monitored channels.",
-            parse_mode="HTML"
-        )
-        logger.info(f"User {telegram_id} added channel @{channel_username}")
-    else:
-        await processing_msg.edit_text(
-            f"❌ <b>Failed to Add Channel</b>\n\n"
-            f"{message_text}\n\n"
-            f"Please try again or use /help for assistance.",
-            parse_mode="HTML"
-        )
-    
-    # Clear state
+    await processing_msg.edit_text(summary, parse_mode="HTML")
     await state.clear()
 
 

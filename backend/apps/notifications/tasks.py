@@ -1,4 +1,5 @@
 import logging
+import os
 import httpx
 from celery import shared_task
 from celery.exceptions import Retry

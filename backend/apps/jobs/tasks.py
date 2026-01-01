@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
     default_retry_delay=60,  # Part 4: Retries must be delayed (initial 60s)
     autoretry_for=(Exception,),
     retry_backoff=True,      # Part 4: Use backoff to reduce cascading failures
-    retry_jitter=True        # Add jitter to avoid thundering herd on recovery
+    retry_jitter=True,       # Add jitter to avoid thundering herd on recovery
+    rate_limit='10/m'        # Limit to 10 tasks per minute to respect Gemini Free Tier
 )
 def process_new_job_post(self, job_id):
     """
@@ -86,7 +87,8 @@ def process_new_job_post(self, job_id):
     max_retries=5,
     default_retry_delay=3600, # Retry every hour
     autoretry_for=(Exception,),
-    retry_backoff=True
+    retry_backoff=True,
+    rate_limit='5/m'          # Limit to 5 tasks per minute
 )
 def retry_metadata_extraction(self, job_id):
     """

@@ -35,7 +35,7 @@ class MatchOrchestrator:
             return
 
         # 2. Iterative Semantic Matching (Throttled via Celery)
-        from .tasks import process_semantic_match
+        from apps.jobs.tasks import process_semantic_match
         
         for user in candidates:
             # Move individual matching to its own rate-limited task

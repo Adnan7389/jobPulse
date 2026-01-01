@@ -230,6 +230,10 @@ async def add_channel(channel_data: Dict[str, Any]) -> Tuple[bool, str, Optional
                     error_data = response.json()
                     logger.warning(f"Channel validation error: {error_data}")
                     
+                    # Check for generic error message (like the 5-channel limit)
+                    if 'error' in error_data:
+                        return False, error_data['error'], None
+                        
                     # Check for duplicate channel_username
                     if 'channel_username' in error_data:
                         return False, "This channel is already being monitored!", None

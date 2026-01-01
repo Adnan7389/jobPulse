@@ -33,7 +33,7 @@ class GeminiClient:
             # Note: The new SDK handles timeouts at the client level, not in config
             # Using gemini-2.0-flash (stable, not experimental)
             response = self.client.models.generate_content(
-                model='models/gemini-1.5-flash',  # Stable Gemini 1.5 model
+                model='models/gemini-2.0-flash-lite',  # Using 2.0-flash-lite for better availability and separate quota
                 contents=safe_prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",

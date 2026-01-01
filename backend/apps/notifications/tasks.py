@@ -49,8 +49,11 @@ def send_notification_to_user(self, notification_id):
     try:
         # Use a synchronous client here because Celery workers are usually synchronous
         # If using eventlet/gevent, httpx.AsyncClient would be better, but standard Celery is prefork.
+        headers = {
+            "X-Bot-API-Secret": os.getenv("BOT_API_SECRET", "")
+        }
         with httpx.Client(timeout=10.0) as client:
-            response = client.post(bot_api_url, json=payload)
+            response = client.post(bot_api_url, json=payload, headers=headers)
             
             if response.status_code == 200:
                 notification.is_sent = True

@@ -1,4 +1,5 @@
 import logging
+import os
 from aiohttp import web
 from aiogram.exceptions import TelegramRetryAfter
 from services.notification_sender import NotificationSender
@@ -14,6 +15,14 @@ async def handle_notify(request):
     except Exception:
         return web.Response(status=400, text="Invalid JSON")
 
+    # Security check: Verify API Secret
+    expected_secret = os.getenv("BOT_API_SECRET")
+    if expected_secret:
+        received_secret = request.headers.get("X-Bot-API-Secret")
+        if received_secret != expected_secret:
+            logger.warning(f"Unauthorized notification attempt from {request.remote}")
+            return web.Response(status=401, text="Unauthorized")
+    
     sender: NotificationSender = request.app['notification_sender']
     notification_id = data.get('notification_id', 'unknown')
     

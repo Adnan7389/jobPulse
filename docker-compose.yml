@@ -9,6 +9,8 @@ services:
       - "8000"
     env_file:
       - .env
+    environment:
+      - BOT_INTERNAL_URL=http://bot:8080
     depends_on:
       - db
       - redis
@@ -39,6 +41,8 @@ services:
       - ./backend:/app
     env_file:
       - .env
+    environment:
+      - BOT_INTERNAL_URL=http://bot:8080
     depends_on:
       - db
       - redis
@@ -74,8 +78,8 @@ services:
     build: ./bot
     volumes:
       - ./bot:/app
-    ports:
-      - "8081:8080"
+    # ports:
+    #   - "8081:8080" # Closed for security, use internal networking
     env_file:
       - .env
     environment:

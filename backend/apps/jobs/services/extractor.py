@@ -31,109 +31,17 @@ class JobClassifierAndExtractor:
     @classmethod
     def extract(cls, job_post: JobPost) -> bool:
         """
-        Classifies the post AND extracts metadata (Synchronous).
-        
-        Returns:
-            True if this is a job post (and metadata was extracted)
-            False if this is NOT a job post (no metadata extraction)
-        
-        Side Effects:
-            - Sets job_post.is_job and job_post.classification_confidence
-            - If is_job=True: Sets category, location, job_type, work_mode
-            - Saves the job_post to database
+        Classifies the post AND extracts metadata using 3-tier Cascade.
         """
+        from shared.utils.ai_cascade import AICascade
         
-        prompt = f"""
-        Role: You are an expert Job Data Analyst at a premium job board.
-        
-        Task 1: JOB CLASSIFICATION
-        Determine if this post is a JOB POSTING or NOT.
-        
-        A JOB POSTING contains:
-        - Hiring intent (e.g., "hiring", "recruiting", "vacancy", "position available")
-        - Job requirements or qualifications
-        - Application instructions (e.g., "apply", "send CV", contact email/phone)
-        - Job title or role description
-        
-        NOT a job posting:
-        - General announcements (e.g., "Happy holidays!", "Channel rules")
-        - Spam or promotional content
-        - News or articles
-        - Greetings or casual messages
-        
-        Task 2: METADATA EXTRACTION (only if it IS a job posting)
-        If the post is a job, extract structured metadata.
-        
-        Guidelines for Metadata:
-        - Category: Select the best fit from {cls.CATEGORIES}. Use 'software' for developer/engineer roles.
-        - Location: Extract "City, Country" (e.g., "Addis Ababa, Ethiopia"). Use null if not mentioned.
-        - Job Type: {cls.JOB_TYPES}. Use null if not mentioned.
-        - Work Mode: {cls.WORK_MODES}. Use null if not mentioned.
-        
-        Example 1 (JOB POSTING - Remote Software Role):
-        Raw: "We're hiring a Python developer! Remote work. Full-time position. Apply: jobs@company.com"
-        JSON: {{
-            "is_job": true,
-            "confidence": 95,
-            "category": "software",
-            "location": null,
-            "job_type": "full_time",
-            "work_mode": "remote"
-        }}
-        
-        Example 2 (JOB POSTING - Sales Role in Dubai):
-        Raw: "Sales manager needed in Dubai. Onsite. Part-time. Send CV to hiring@example.ae"
-        JSON: {{
-            "is_job": true,
-            "confidence": 90,
-            "category": "sales",
-            "location": "Dubai, UAE",
-            "job_type": "part_time",
-            "work_mode": "onsite"
-        }}
-        
-        Example 3 (NOT A JOB - Announcement):
-        Raw: "Happy New Year everyone! Best wishes for 2025!"
-        JSON: {{
-            "is_job": false,
-            "confidence": 95,
-            "category": null,
-            "location": null,
-            "job_type": null,
-            "work_mode": null
-        }}
-        
-        Example 4 (NOT A JOB - Promotional Spam):
-        Raw: "Get rich quick! Click here for amazing opportunities!"
-        JSON: {{
-            "is_job": false,
-            "confidence": 85,
-            "category": null,
-            "location": null,
-            "job_type": null,
-            "work_mode": null
-        }}
-        
-        Post Text to Analyze:
-        ---
-        {job_post.raw_text}
-        ---
-        
-        Return ONLY valid JSON with these exact fields:
-        {{
-            "is_job": boolean,
-            "confidence": integer (0-100),
-            "category": string or null,
-            "location": string or null,
-            "job_type": string or null,
-            "work_mode": string or null
-        }}
-        """
+        cascade = AICascade()
 
         try:
-            result = gemini_client.generate_json(prompt)
+            result, tier_used = cascade.classify_with_fallback(job_post.raw_text)
+            
             if not result:
-                logger.warning(f"No response from AI for JobPost {job_post.id}")
+                logger.warning(f"No response from AI Cascade for JobPost {job_post.id}")
                 # Default to treating as job (backward compatible)
                 job_post.is_job = True
                 job_post.classification_confidence = None
@@ -142,11 +50,12 @@ class JobClassifierAndExtractor:
                 return True
 
             # Extract classification results
-            is_job = result.get('is_job', True)  # Default to True if missing
-            confidence = result.get('confidence', 50)  # Default to low confidence
+            is_job = result.get('is_job', True)
+            confidence = result.get('confidence', 50)
             
             # Store classification results
             job_post.classification_confidence = confidence
+            job_post.ai_tier_classification = tier_used
             
             # Decision logic: Is this a job posting?
             if not is_job or confidence < cls.CLASSIFICATION_THRESHOLD:
@@ -155,7 +64,7 @@ class JobClassifierAndExtractor:
                 job_post.save()
                 logger.info(
                     f"JobPost {job_post.id} classified as NON-JOB "
-                    f"(is_job={is_job}, confidence={confidence}%)"
+                    f"(tier={tier_used}, confidence={confidence}%)"
                 )
                 return False
             
@@ -171,7 +80,7 @@ class JobClassifierAndExtractor:
             
             job_post.save()
             logger.info(
-                f"JobPost {job_post.id} classified as JOB "
+                f"JobPost {job_post.id} classified as JOB by {tier_used.upper()} "
                 f"(confidence={confidence}%, category={job_post.category})"
             )
             return True

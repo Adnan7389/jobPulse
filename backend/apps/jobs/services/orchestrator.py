@@ -81,55 +81,32 @@ class MatchOrchestrator:
         return list(queryset.filter(query).distinct())
 
     @classmethod
-    def get_semantic_match(cls, user: User, job_post: JobPost) -> tuple[int, str]:
+    def get_semantic_match(cls, user: User, job_post: JobPost) -> tuple[int, str, str]:
         """
-        Calls Gemini to get a semantic match score and reasoning (Synchronous).
+        Calls AI Cascade to get a semantic match score and reasoning (Synchronous).
+        Returns: (score, reasoning, match_source)
         """
-        prompt = f"""
-        Role: You are a Senior Technical Recruiter.
-        Task: Evaluate the fit between the User and the Job Posting.
+        from shared.utils.ai_cascade import AICascade
         
-        CRITICAL: Write the "reasoning" directly TO the User (use "You", "Your skills", "Your experience"). 
-        Address them personally as if you are giving them advice on why this job is a good match for them.
-
-        Evaluation Criteria:
-        1. Hard Skills Match: Do the user's skills align with the job requirements?
-        2. Experience Level: Does the user's years of experience match the seniority required?
-        3. Career Context: Does the user's bio suggest they are actually looking for this type of role?
+        cascade = AICascade()
         
-        Example 1 (Perfect Match):
-        User: Python, Django, 5 years exp.
-        Job: Senior Python Developer, Django required.
-        Score: 95
-        Reasoning: "You are an excellent fit for this role as your 5 years of Django experience perfectly align with the senior requirements."
-        
-        Example 2 (Poor Match):
-        User: Junior Designer, 1 year exp.
-        Job: Project Manager, 10 years exp.
-        Score: 10
-        Reasoning: "This role requires significantly more management experience than you currently possess, and the field differs from your design background."
-
-        User Profile:
-        - Bio: {user.bio}
-        - Skills: {user.skills}
-        - Job Titles: {user.job_titles}
-        - Experience Level: {user.experience_level} ({user.years_experience} years)
-
-        Job Posting Content:
-        ---
-        {job_post.raw_text}
-        ---
-
-        Return ONLY a JSON object with:
-        - score: An integer from 0 to 100
-        - reasoning: A professional recruiter's assessment (1-2 sentences).
-        """
+        # Construct profile string first to avoid repeated DB hits or string formatting
+        user_profile_text = (
+            f"Bio: {user.bio}\n"
+            f"Skills: {user.skills}\n"
+            f"Job Titles: {user.job_titles}\n"
+            f"Experience Level: {user.experience_level} ({user.years_experience} years)"
+        )
 
         try:
-            result = gemini_client.generate_json(prompt)
+            result, tier_used = cascade.match_with_fallback(user_profile_text, job_post.raw_text)
             if result:
-                return int(result.get('score', 0)), result.get('reasoning', '')
+                return (
+                    int(result.get('score', 0)), 
+                    result.get('reasoning', ''), 
+                    tier_used
+                )
         except Exception as e:
             logger.error(f"Semantic matching failed for User {user.id}: {e}")
         
-        return 0, "Error during matching"
+        return 0, "Error during matching", "error"

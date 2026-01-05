@@ -14,9 +14,9 @@ class NotificationSender:
         job = data['job_post']
         match = data['match']
         
-        category = job.get('category', 'General').replace('_', ' ').title()
-        mode = job.get('work_mode', 'N/A').title()
-        location = job.get('location', 'N/A')
+        category = (job.get('category') or 'General').replace('_', ' ').title()
+        mode = (job.get('work_mode') or 'N/A').title()
+        location = job.get('location') or 'N/A'
         
         # HTML Escaping for safety
         reasoning = html.escape(match.get('reasoning', ''))

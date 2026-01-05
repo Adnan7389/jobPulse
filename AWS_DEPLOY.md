@@ -82,3 +82,42 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 *   Access via `http://<INSTANCE-PUBLIC-IP>:8002/admin/`.
 *   Note: You configured Nginx on port 8002 in `docker-compose.yml`. You might need to edit the AWS "Security Group" to allow Custom TCP Rule for port `8002` (standard HTTP rule only opens port 80).
     *   *Alternative*: Edit `docker-compose.yml` on the server to map `80:80` for Nginx.
+
+### 7. Applying Updates (e.g., AI Fallback System)
+
+When you have pushed new changes (like the 3-tier AI system) to GitHub, follow these steps to update your AWS server:
+
+1.  **Connect to Server**:
+    ```bash
+    ssh -i jobpulse-key.pem ubuntu@<INSTANCE-IP>
+    cd jobPulse
+    ```
+
+2.  **Pull Latest Code**:
+    ```bash
+    git pull origin main
+    ```
+
+3.  **Update Environment Variables**:
+    You need to add the new API keys for the fallback system.
+    ```bash
+    nano .env
+    ```
+    Add/Update:
+    ```ini
+    OPENROUTER_API_KEY=your_key_here
+    HF_API_KEY=your_key_here
+    ```
+    Save (Ctrl+O, Enter) and Exit (Ctrl+X).
+
+4.  **Rebuild and Restart**:
+    This will install the new dependencies (openai, tenacity, etc.) and apply migrations.
+    ```bash
+    docker compose up -d --build
+    ```
+
+5.  **Verify**:
+    Check logs to ensure the new AI clients are initialized and migrations ran.
+    ```bash
+    docker compose logs -f web --tail=100
+    ```

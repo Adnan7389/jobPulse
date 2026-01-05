@@ -280,7 +280,11 @@ class HuggingFaceClient:
         text_lower = job_text.lower()
         
         # Heuristic Classification
-        job_keywords = ['hiring', 'vacancy', 'apply', 'role', 'position', 'salary', 'remote', 'hybrid', 'onsite']
+        job_keywords = [
+            'hiring', 'vacancy', 'apply', 'role', 'position', 'salary', 'remote', 'hybrid', 'onsite',
+            'responsibilities', 'qualifications', 'requirements', 'skills', 'experience', 'join our team',
+            'looking for', 'job', 'career', 'full-time', 'part-time', 'contract', 'freelance'
+        ]
         keyword_count = sum(1 for k in job_keywords if k in text_lower)
         is_job = keyword_count >= 2
         confidence = min(keyword_count * 15, 90) if is_job else 50

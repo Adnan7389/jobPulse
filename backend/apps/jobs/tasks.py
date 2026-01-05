@@ -142,7 +142,8 @@ def process_semantic_match(self, user_id, job_id):
         job = JobPost.objects.get(id=job_id)
         
         # Call the orchestrator logic for single user matching
-        score, reasoning = MatchOrchestrator.get_semantic_match(user, job)
+        # NOW returns 3 values: score, reasoning, match_source
+        score, reasoning, match_source = MatchOrchestrator.get_semantic_match(user, job)
         
         if score >= MatchOrchestrator.MATCH_THRESHOLD:
             notification = Notification.objects.create(
@@ -150,7 +151,7 @@ def process_semantic_match(self, user_id, job_id):
                 job=job,
                 match_score=score,
                 reasoning=reasoning,
-                source='gemini'
+                source=match_source # Capturing the actual AI tier used
             )
             send_notification_to_user.apply_async(args=[notification.id], countdown=2)
             logger.info(f"Notification created for User {user_id} on Job {job_id}")

@@ -58,6 +58,18 @@ class JobPost(models.Model):
         blank=True,
         help_text="AI confidence score (0-100) for job classification"
     )
+
+    ai_tier_classification = models.CharField(
+        max_length=20,
+        choices=[
+            ('gemini', 'Gemini'),
+            ('deepseek', 'DeepSeek'),
+            ('huggingface', 'HuggingFace'),
+        ],
+        null=True,
+        blank=True,
+        help_text="Which AI tier was used for classification/extraction"
+    )
     needs_metadata_extraction = models.BooleanField(
         default=False,
         help_text="True if AI failed during ingestion and requires retry"

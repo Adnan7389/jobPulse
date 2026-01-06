@@ -8,6 +8,12 @@ class Notification(models.Model):
     match_score = models.PositiveIntegerField(null=True, blank=True)
     reasoning = models.TextField(blank=True)
     source = models.CharField(max_length=50, default='keyword', help_text="Source of the match (e.g., gemini, keyword)")
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('sent', 'Sent'),
+        ('failed', 'Failed'),
+    ]
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     is_sent = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

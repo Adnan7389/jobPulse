@@ -8,6 +8,9 @@ from google.genai import types
 from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
+# Analytics
+from apps.analytics.decorators import track_ai_performance
+
 # For local fallback
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -30,6 +33,7 @@ class GeminiClient:
         else:
             self.client = genai.Client(api_key=self.api_key)
 
+    @track_ai_performance('gemini', 'extraction')
     def classify_and_extract(self, job_text: str) -> Optional[Dict[str, Any]]:
         if not self.client:
             return None
@@ -104,6 +108,7 @@ class GeminiClient:
             raise e # Re-raise to let cascade handle it
         return None
 
+    @track_ai_performance('gemini', 'matching')
     def semantic_match(self, user_profile: str, job_text: str) -> Optional[Dict[str, Any]]:
         if not self.client:
             return None
@@ -195,6 +200,7 @@ class DeepSeekClient:
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10)
     )
+    @track_ai_performance('deepseek', 'extraction')
     def classify_and_extract(self, job_text: str) -> Optional[Dict[str, Any]]:
         # Respect 20 RPM (3s delay) - handled by tenacity wait_exponential min=4 roughly covers it + backoff
         
@@ -234,6 +240,7 @@ class DeepSeekClient:
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10)
     )
+    @track_ai_performance('deepseek', 'matching')
     def semantic_match(self, user_profile: str, job_text: str) -> Optional[Dict[str, Any]]:
         if not self.client:
             return None
@@ -269,6 +276,7 @@ class HuggingFaceClient:
         # Initialize TF-IDF vectorizer only once
         self.vectorizer = TfidfVectorizer(stop_words='english')
 
+    @track_ai_performance('hf', 'extraction')
     def classify_and_extract(self, job_text: str) -> Dict[str, Any]:
         """
         Fallback classification using basic heuristics since we can't easily run a 
@@ -315,6 +323,7 @@ class HuggingFaceClient:
             "work_mode": work_mode
         }
 
+    @track_ai_performance('hf', 'matching')
     def semantic_match(self, user_profile: str, job_text: str) -> Dict[str, Any]:
         """
         TF-IDF Cosine Similarity for semantic matching.

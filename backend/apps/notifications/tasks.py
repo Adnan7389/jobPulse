@@ -58,7 +58,8 @@ def send_notification_to_user(self, notification_id):
             
             if response.status_code == 200:
                 notification.is_sent = True
-                notification.save(update_fields=['is_sent'])
+                notification.status = 'sent'
+                notification.save(update_fields=['is_sent', 'status'])
                 logger.info(f"Successfully sent notification {notification_id} to user {user.telegram_id}")
             elif response.status_code == 429:
                 # Rate limited by bot service (FloodWait)
@@ -75,6 +76,16 @@ def send_notification_to_user(self, notification_id):
             raise exc
         
         logger.error(f"Failed to send notification {notification_id}: {exc}")
+        
+        # If we exhausted retries, mark as failed
+        if self.request.retries >= self.max_retries:
+            try:
+                # Need to refetch or use local ref
+                notification.status = 'failed'
+                notification.save(update_fields=['status'])
+            except:
+                pass
+                
         # Exponential backoff: 60, 120, 240 seconds
         countdown = 60 * (2 ** self.request.retries)
         raise self.retry(exc=exc, countdown=countdown)

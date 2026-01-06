@@ -5,7 +5,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-    /* Mission Control Dark Mode Overrides */
     :root {
         --bg-color: #1a1d21;
         --card-bg: #22252b;
@@ -20,6 +19,7 @@
     body {
         background-color: var(--bg-color) !important;
         color: var(--text-primary) !important;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
     }
 
     .dashboard-container {
@@ -35,46 +35,59 @@
         padding: 20px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         border: 1px solid rgba(255, 255, 255, 0.05);
+        position: relative;
     }
 
     .card h3 {
         color: var(--text-secondary);
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         text-transform: uppercase;
-        margin-bottom: 15px;
+        margin-bottom: 12px;
         letter-spacing: 1px;
     }
 
     .metric-value {
-        font-size: 2.2rem;
+        font-size: 2rem;
         font-weight: 700;
         color: var(--text-primary);
     }
 
     .metric-sub {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         color: var(--success-color);
-        margin-top: 5px;
+        margin-top: 4px;
     }
 
-    /* Grid Areas */
-    .span-2 { grid-column: span 2; }
-    .span-4 { grid-column: span 4; }
-    .row-span-2 { grid-row: span 2; }
+    .span-1 {
+        grid-column: span 1;
+    }
 
-    /* Tables */
+    .span-2 {
+        grid-column: span 2;
+    }
+
+    .span-4 {
+        grid-column: span 4;
+    }
+
     .log-table {
         width: 100%;
         font-family: 'Courier New', monospace;
-        font-size: 0.85rem;
-        color: #d4d4d4;
+        font-size: 0.8rem;
+        color: #ccc;
     }
-    .log-table tr:nth-child(odd) { background: rgba(255, 255, 255, 0.02); }
-    .log-table td { padding: 4px 8px; }
+
+    .log-table tr:nth-child(odd) {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .log-table td {
+        padding: 3px 6px;
+    }
 
     .chart-container {
         position: relative;
-        height: 220px;
+        height: 180px;
         width: 100%;
     }
 
@@ -85,61 +98,112 @@
         display: inline-block;
         margin-right: 5px;
     }
-    .bg-green { background-color: var(--success-color); }
+
+    .bg-green {
+        background-color: var(--success-color);
+    }
+
+    .version-tag {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 10px;
+        color: #444;
+        font-weight: bold;
+    }
+
+    .breakdown-row {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 8px;
+    }
+
+    .breakdown-item {
+        text-align: center;
+        flex: 1;
+    }
+
+    .breakdown-label {
+        font-size: 0.65rem;
+        color: var(--text-secondary);
+        display: block;
+    }
+
+    .breakdown-value {
+        font-size: 0.9rem;
+        font-weight: bold;
+        color: var(--text-primary);
+    }
 </style>
 
 <div class="dashboard-container">
     <div class="card">
+        <div class="version-tag">V2.2_STABLE_REFIXED</div>
         <h3>Traffic (Today)</h3>
-        <div class="metric-value">{{ traffic_today.total|default:"0" }}</div>
-        <div class="metric-sub">{{ traffic_today.jobs|default:"0" }} Hits</div>
+        <div class="metric-value">{{ traffic_today.total|default:0 }}</div>
+        <div class="metric-sub">{{ traffic_today.jobs|default:0 }} Job Actions</div>
     </div>
 
     <div class="card">
-        <h3>Matches</h3>
-        <div class="metric-value">{{ matches_today }}</div>
-        <div class="metric-sub">Total: {{ matches_total }}</div>
+        <h3>Matches (Engagement)</h3>
+        <div class="metric-value">{{ matches_today|default:0 }}</div>
+        <div class="breakdown-row">
+            <div class="breakdown-item">
+                <span class="breakdown-label">Today</span>
+                <span class="breakdown-value">+{{ matches_today|default:0 }}</span>
+            </div>
+            <div class="breakdown-item">
+                <span class="breakdown-label">7 Days</span>
+                <span class="breakdown-value">+{{ matches_7d|default:0 }}</span>
+            </div>
+            <div class="breakdown-item">
+                <span class="breakdown-label">30 Days</span>
+                <span class="breakdown-value">+{{ matches_30d|default:0 }}</span>
+            </div>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px; text-align: center;">Total
+            Lifetime: {{ matches_total|default:0 }}</div>
     </div>
 
     <div class="card">
         <h3>System Status</h3>
-        <div class="metric-value" style="color: var(--success-color)">
-            <span class="status-dot bg-green"></span> OK
+        <div class="metric-value" style="color: var(--success-color)"><span class="status-dot bg-green"></span> ONLINE
         </div>
-        <div class="metric-sub">Workers Online</div>
+        <div class="metric-sub">Avg Latency: {{ latency_avg|default:0 }}ms</div>
     </div>
 
     <div class="card">
-        <h3>AI Success Rate</h3>
-        <div class="metric-value">{{ overall_success_rate }}%</div>
-        <div class="metric-sub">Last 24h</div>
+        <h3>AI Success</h3>
+        <div class="metric-value">{{ overall_success_rate|default:100 }}%</div>
+        <div class="metric-sub">Reliability (24h)</div>
     </div>
 
     <div class="card span-4">
-        <h3>Growth & Acquisition</h3>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center;">
+        <h3>User & Channel Growth</h3>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
             <div>
-                <h4 style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Users</h4>
-                <div style="margin-top: 10px;">
-                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">+{{ users_new_today|default:"0" }} <span style="font-size: 0.8rem; color: var(--text-secondary);">Today</span></span>
-                    <span style="display: block; font-size: 1.1rem; color: var(--success-color);">+{{ users_new_7d|default:"0" }} <span style="font-size: 0.7rem; color: var(--text-secondary);">7 Days</span></span>
-                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">+{{ users_new_30d|default:"0" }} <span style="font-size: 0.7rem;">30 Days</span></span>
-                </div>
-            </div>
-            <div style="border-left: 1px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(255,255,255,0.1);">
-                <h4 style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Channels</h4>
-                <div style="margin-top: 10px;">
-                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">+{{ channels_new_today|default:"0" }} <span style="font-size: 0.8rem; color: var(--text-secondary);">Today</span></span>
-                    <span style="display: block; font-size: 1.1rem; color: var(--success-color);">+{{ channels_new_7d|default:"0" }} <span style="font-size: 0.7rem; color: var(--text-secondary);">7 Days</span></span>
-                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">+{{ channels_new_30d|default:"0" }} <span style="font-size: 0.7rem;">30 Days</span></span>
+                <h4 style="color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">Users</h4>
+                <div class="breakdown-row">
+                    <div class="breakdown-item"><span class="breakdown-label">Today</span><span
+                            class="breakdown-value">+{{ users_new_today|default:0 }}</span></div>
+                    <div class="breakdown-item"><span class="breakdown-label">7 Days</span><span
+                            class="breakdown-value">+{{ users_new_7d|default:0 }}</span></div>
+                    <div class="breakdown-item"><span class="breakdown-label">30 Days</span><span
+                            class="breakdown-value">+{{ users_new_30d|default:0 }}</span></div>
                 </div>
             </div>
             <div>
-                <h4 style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Engagement</h4>
-                 <div style="margin-top: 10px;">
-                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">{{ matches_today }} <span style="font-size: 0.8rem; color: var(--text-secondary);">Matches</span></span>
-                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">Latency: {{ latency_stats.0.avg_latency|floatformat:0|default:"0" }}ms</span>
-                 </div>
+                <h4 style="color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">Channels</h4>
+                <div class="breakdown-row">
+                    <div class="breakdown-item"><span class="breakdown-label">Today</span><span
+                            class="breakdown-value">+{{ channels_new_today|default:0 }}</span></div>
+                    <div class="breakdown-item"><span class="breakdown-label">7 Days</span><span
+                            class="breakdown-value">+{{ channels_new_7d|default:0 }}</span></div>
+                    <div class="breakdown-item"><span class="breakdown-label">30 Days</span><span
+                            class="breakdown-value">+{{ channels_new_30d|default:0 }}</span></div>
+                </div>
             </div>
         </div>
     </div>
@@ -147,35 +211,26 @@
     <!-- Charts -->
     <div class="card span-1">
         <h3>AI Distribution</h3>
-        <div class="chart-container" style="height: 180px;">
-            <canvas id="tierChart"></canvas>
-        </div>
+        <div class="chart-container"><canvas id="tierChart"></canvas></div>
     </div>
     <div class="card span-1">
-        <h3>Delivery</h3>
-        <div class="chart-container" style="height: 180px;">
-            <canvas id="notifChart"></canvas>
-        </div>
+        <h3>Notification Delivery</h3>
+        <div class="chart-container"><canvas id="notifChart"></canvas></div>
     </div>
     <div class="card span-2">
-        <h3>Success Rate</h3>
-        <div class="chart-container" style="height: 180px;">
-            <canvas id="successChart"></canvas>
-        </div>
-    </div>
-    <div class="card span-4">
-        <h3>Latency Trends</h3>
-        <div class="chart-container" style="height: 180px;">
-            <canvas id="latencyChart"></canvas>
-        </div>
+        <h3>Operation Success Ratio</h3>
+        <div class="chart-container"><canvas id="successChart"></canvas></div>
     </div>
 
     <div class="card span-4">
-        <h3>Recent Logs</h3>
-        <div style="height: 300px; overflow-y: scroll; background: #111; padding: 10px; border-radius: 8px;">
+        <h3>Mission Control Logs</h3>
+        <div
+            style="height: 250px; overflow-y: auto; background: #000; padding: 12px; border-radius: 8px; border: 1px solid #333;">
             <table class="log-table">
                 {% for line in logs %}
-                <tr><td>{{ line }}</td></tr>
+                <tr>
+                    <td>{{ line }}</td>
+                </tr>
                 {% endfor %}
             </table>
         </div>
@@ -184,38 +239,38 @@
 
 {{ tier_labels|json_script:"tier-labels" }}
 {{ tier_data|json_script:"tier-data" }}
-{{ latency_stats|json_script:"latency-data" }}
+{{ latency_avg|json_script:"latency-avg" }}
 {{ ai_success_data|json_script:"success-data" }}
 {{ notif_labels|json_script:"notif-labels" }}
 {{ notif_data|json_script:"notif-data" }}
 
 <script>
     setTimeout(() => window.location.reload(), 60000);
-    const getData = (id) => JSON.parse(document.getElementById(id).textContent);
-    
+    const getData = (id) => {
+        const el = document.getElementById(id);
+        return el ? JSON.parse(el.textContent) : [];
+    };
+
+    // AI Tiers
     new Chart(document.getElementById('tierChart'), {
         type: 'doughnut',
         data: { labels: getData('tier-labels'), datasets: [{ data: getData('tier-data'), backgroundColor: ['#4f46e5', '#ec4899', '#10b981', '#6b7280'], borderWidth: 0 }] },
-        options: { plugins: { legend: { display: false } }, maintainAspectRatio: false }
+        options: { plugins: { legend: { display: true, position: 'bottom', labels: { color: '#a0a0a0', boxWidth: 10, font: { size: 10 } } } }, maintainAspectRatio: false }
     });
-    
+
+    // Delivery Status
     new Chart(document.getElementById('notifChart'), {
         type: 'doughnut',
         data: { labels: getData('notif-labels'), datasets: [{ data: getData('notif-data'), backgroundColor: ['#10b981', '#f59e0b', '#ef4444'], borderWidth: 0 }] },
-        options: { plugins: { legend: { display: false } }, maintainAspectRatio: false }
+        options: { plugins: { legend: { display: true, position: 'bottom', labels: { color: '#a0a0a0', boxWidth: 10, font: { size: 10 } } } }, maintainAspectRatio: false }
     });
-    
+
+    // Success/Fail Bars
+    const sData = getData('success-data');
     new Chart(document.getElementById('successChart'), {
         type: 'bar',
-        data: { labels: getData('success-data').labels, datasets: [{ label: 'OK', data: getData('success-data').success, backgroundColor: '#10b981' }, { label: 'Err', data: getData('success-data').failure, backgroundColor: '#ef4444' }] },
-        options: { scales: { x: { stacked: true }, y: { stacked: true } }, plugins: { legend: { position: 'bottom' } }, maintainAspectRatio: false }
-    });
-    
-    const lData = getData('latency-data');
-    new Chart(document.getElementById('latencyChart'), {
-        type: 'bar',
-        data: { labels: lData.map(d => d.tier), datasets: [{ label: 'ms', data: lData.map(d => d.avg_latency), backgroundColor: '#f59e0b' }] },
-        options: { plugins: { legend: { display: false } }, maintainAspectRatio: false }
+        data: { labels: sData.labels || [], datasets: [{ label: 'Success', data: sData.success || [], backgroundColor: '#10b981' }, { label: 'Failure', data: sData.failure || [], backgroundColor: '#ef4444' }] },
+        options: { scales: { x: { stacked: true, ticks: { color: '#a0a0a0' } }, y: { stacked: true, ticks: { color: '#a0a0a0' } } }, plugins: { legend: { position: 'bottom', labels: { color: '#a0a0a0' } } }, maintainAspectRatio: false }
     });
 </script>
 {% endblock %}

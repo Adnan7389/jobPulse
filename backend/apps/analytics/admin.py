@@ -7,16 +7,6 @@ from .models import AiLog, RequestMetric
 import datetime
 import os
 
-# We can reuse the main admin site
-class AnalyticsAdminSite(admin.AdminSite):
-    site_header = "JobLens Analytics"
-
-# Or just hook into the existing admin via a ModelAdmin or a direct view
-# The prompt says "Override the default admin index or create a custom view admin/dashboard/"
-
-# Let's register a dummy model to hang the view off of, OR just patch the admin urls.
-# Patching admin urls is cleaner.
-
 from apps.analytics.models import AiLog, RequestMetric
 
 @admin.register(AiLog)
@@ -33,99 +23,103 @@ class AiLogAdmin(admin.ModelAdmin):
         return my_urls + urls
 
     def dashboard_view(self, request):
-        # 1. Traffic Metrics
         today = timezone.now().date()
+        last_24h = timezone.now() - datetime.timedelta(hours=24)
+        last_7_days = timezone.now() - datetime.timedelta(days=7)
+        last_30_days = timezone.now() - datetime.timedelta(days=30)
+
+        # 1. Traffic Metrics
         traffic_today = RequestMetric.objects.filter(date=today).aggregate(
             total=Sum('total_requests'),
             jobs=Sum('job_processing_requests')
         )
         
         # 2. AI Performance
-        # Tier Distribution
         tier_stats = AiLog.objects.values('tier').annotate(count=Count('id')).order_by('-count')
-        
-        # Success vs Failure (Last 24h)
-        last_24h = timezone.now() - datetime.timedelta(hours=24)
         recent_logs = AiLog.objects.filter(timestamp__gte=last_24h)
-        
         success_rates = recent_logs.values('operation', 'success').annotate(count=Count('id'))
-        
-        # Latency
         latency_stats = recent_logs.values('tier').annotate(avg_latency=Avg('duration_ms'))
         
-        # 3. Business Impact (Mocked if models aren't easily accessible, but we can try to import)
+        # Overall AI Success Rate
+        total_ai_calls = recent_logs.count()
+        success_ai_calls = recent_logs.filter(success=True).count()
+        overall_success_rate = (success_ai_calls / total_ai_calls * 100) if total_ai_calls > 0 else 100
+
+        # 3. Business Impact
         from apps.jobs.models import JobPost
         from apps.notifications.models import Notification
-        
-        matches_today = JobPost.objects.filter(created_at__date=today).count() # Approximation
-        # Actually standard matching produces Notifications. 
-        # But let's count JobPosts processed today as "Matches Found" input? 
-        # Requirement: "Total Matches Found (Today / Total)"
-        # This implies we should query Notifications count.
+        from apps.users.models import User
+        from apps.channels.models import Channel
         
         try:
             total_matches_today = Notification.objects.filter(created_at__date=today).count()
             total_matches_all = Notification.objects.count()
+            # Calculate sent vs pending
+            notif_stats = Notification.objects.values('is_sent').annotate(count=Count('id'))
         except:
             total_matches_today = 0
             total_matches_all = 0
+            notif_stats = []
 
-        # Notifications Sent vs Failed
-        # Assuming Notification model has a status field
-        try:
-             notif_stats = Notification.objects.values('status').annotate(count=Count('id'))
-        except:
-             notif_stats = []
-
-        # 4. System Health
-        # Celery Queues
-        import celery
+        # 4. System Health & Logs
         from core.celery import app as celery_app
-        
         queues = {}
         try:
             i = celery_app.control.inspect()
-            # active = i.active() or {}
-            # reserved = i.reserved() or {}
-            # scheduled = i.scheduled() or {}
-            
-            # fast check for "pending" usually requires querying the broker (Redis) directly 
-            # or just summing up active/reserved.
-            # For MVP let's just show active tasks count if possible.
-            # Note: inspect() can be slow or timeout if workers aren't responsive.
-            stats = i.stats() or {}
-            queues = stats
-        except Exception as e:
-            queues = {"error": str(e)}
+            queues = i.stats() or {}
+        except Exception:
+            queues = {"error": "Could not connect to workers"}
 
-        # Logs
         log_lines = []
-        log_path = '/app/logs/system.log' # Docker path
+        log_path = '/app/logs/system.log'
         if not os.path.exists(log_path):
-             # Try relative to BASE_DIR if simple python run
              log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'logs', 'system.log')
         
         if os.path.exists(log_path):
             with open(log_path, 'r') as f:
-                # Read last 100 lines efficiently-ish
                 lines = f.readlines()
                 log_lines = lines[-100:]
-                log_lines.reverse() # Newest first
+                log_lines.reverse()
+
+        # 5. Growth Metrics
+        users_new_today = User.objects.filter(date_joined__date=today).count()
+        users_new_7d = User.objects.filter(date_joined__gte=last_7_days).count()
+        users_new_30d = User.objects.filter(date_joined__gte=last_30_days).count()
+        
+        channels_new_today = Channel.objects.filter(created_at__date=today).count()
+        channels_new_7d = Channel.objects.filter(created_at__gte=last_7_days).count()
+        channels_new_30d = Channel.objects.filter(created_at__gte=last_30_days).count()
 
         context = {
             'title': 'System Health & Analytics',
             'traffic_today': traffic_today,
-            'tier_stats': list(tier_stats),
-            'success_rates': list(success_rates),
-            'latency_stats': list(latency_stats),
+            'overall_success_rate': round(overall_success_rate, 1),
             'matches_today': total_matches_today,
             'matches_total': total_matches_all,
-            'notif_stats': list(notif_stats),
             'queues': queues,
             'logs': log_lines,
-            # Pass data as JSON for charts
+            'users_new_today': users_new_today,
+            'users_new_7d': users_new_7d,
+            'users_new_30d': users_new_30d,
+            'channels_new_today': channels_new_today,
+            'channels_new_7d': channels_new_7d,
+            'channels_new_30d': channels_new_30d,
+            # AI Success/Fail Data for Chart
+            'ai_success_data': {
+                'labels': ['Extraction', 'Matching'],
+                'success': [
+                    recent_logs.filter(operation='extraction', success=True).count(),
+                    recent_logs.filter(operation='matching', success=True).count()
+                ],
+                'failure': [
+                    recent_logs.filter(operation='extraction', success=False).count(),
+                    recent_logs.filter(operation='matching', success=False).count()
+                ]
+            },
+            # Chart.js Data
             'tier_labels': [x['tier'] for x in tier_stats],
             'tier_data': [x['count'] for x in tier_stats],
+            'latency_stats': list(latency_stats),
         }
         
         return TemplateResponse(request, "admin/analytics/dashboard.html", context)

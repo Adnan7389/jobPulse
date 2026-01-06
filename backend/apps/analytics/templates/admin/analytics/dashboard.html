@@ -46,7 +46,7 @@
     }
 
     .metric-value {
-        font-size: 2.5rem;
+        font-size: 2.2rem;
         font-weight: 700;
         color: var(--text-primary);
     }
@@ -58,17 +58,9 @@
     }
 
     /* Grid Areas */
-    .span-2 {
-        grid-column: span 2;
-    }
-
-    .span-4 {
-        grid-column: span 4;
-    }
-
-    .row-span-2 {
-        grid-row: span 2;
-    }
+    .span-2 { grid-column: span 2; }
+    .span-4 { grid-column: span 4; }
+    .row-span-2 { grid-row: span 2; }
 
     /* Tables */
     .log-table {
@@ -77,18 +69,12 @@
         font-size: 0.85rem;
         color: #d4d4d4;
     }
-
-    .log-table tr:nth-child(odd) {
-        background: rgba(255, 255, 255, 0.02);
-    }
-
-    .log-table td {
-        padding: 4px 8px;
-    }
+    .log-table tr:nth-child(odd) { background: rgba(255, 255, 255, 0.02); }
+    .log-table td { padding: 4px 8px; }
 
     .chart-container {
         position: relative;
-        height: 250px;
+        height: 220px;
         width: 100%;
     }
 
@@ -99,41 +85,34 @@
         display: inline-block;
         margin-right: 5px;
     }
-
-    .bg-green {
-        background-color: var(--success-color);
-    }
-
-    .bg-red {
-        background-color: var(--danger-color);
-    }
+    .bg-green { background-color: var(--success-color); }
 </style>
 
 <div class="dashboard-container">
-    <!-- Header -->
-    <div class="card span-1">
-        <h3>Total Requests (Today)</h3>
+    <!-- Row 1: Key Metrics -->
+    <div class="card">
+        <h3>Traffic (Today)</h3>
         <div class="metric-value">{{ traffic_today.total|default:"0" }}</div>
-        <div class="metric-sub">{{ traffic_today.jobs|default:"0" }} Job Processes</div>
+        <div class="metric-sub">{{ traffic_today.jobs|default:"0" }} Job Hits</div>
     </div>
 
-    <div class="card span-1">
-        <h3>Matches Found</h3>
+    <div class="card">
+        <h3>Matches</h3>
         <div class="metric-value">{{ matches_today }}</div>
-        <div class="metric-sub">Lifetime: {{ matches_total }}</div>
+        <div class="metric-sub">Total: {{ matches_total }}</div>
     </div>
 
-    <div class="card span-1">
-        <h3>System Status</h3>
+    <div class="card">
+        <h3>System Health</h3>
         <div class="metric-value" style="color: var(--success-color)">
-            <span class="status-dot bg-green"></span> Operational
+            <span class="status-dot bg-green"></span> OK
         </div>
-        <div class="metric-sub">Celery Workers: {{ queues|length }}</div>
+        <div class="metric-sub">Workers Up</div>
     </div>
 
-    <div class="card span-1">
+    <div class="card">
         <h3>AI Success Rate</h3>
-        <div class="metric-value">98.5%</div>
+        <div class="metric-value">{{ overall_success_rate }}%</div>
         <div class="metric-sub">Last 24h</div>
     </div>
 
@@ -144,136 +123,135 @@
             <div>
                 <h4 style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Users</h4>
                 <div style="margin-top: 10px;">
-                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">+{{
-                        users_new_today|default:"0" }} <span
-                            style="font-size: 0.8rem; color: var(--text-secondary);">Today</span></span>
-                    <span style="display: block; font-size: 1.1rem; color: var(--success-color);">+{{
-                        users_new_7d|default:"0" }} <span style="font-size: 0.7rem; color: var(--text-secondary);">7
-                            Days</span></span>
-                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">+{{
-                        users_new_30d|default:"0" }} <span style="font-size: 0.7rem;">30 Days</span></span>
+                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">+{{ users_new_today|default:"0" }} <span style="font-size: 0.8rem; color: var(--text-secondary);">Today</span></span>
+                    <span style="display: block; font-size: 1.1rem; color: var(--success-color);">+{{ users_new_7d|default:"0" }} <span style="font-size: 0.7rem; color: var(--text-secondary);">7 Days</span></span>
+                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">+{{ users_new_30d|default:"0" }} <span style="font-size: 0.7rem;">30 Days</span></span>
                 </div>
             </div>
             <div style="border-left: 1px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(255,255,255,0.1);">
                 <h4 style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Channels</h4>
                 <div style="margin-top: 10px;">
-                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">+{{
-                        channels_new_today|default:"0" }} <span
-                            style="font-size: 0.8rem; color: var(--text-secondary);">Today</span></span>
-                    <span style="display: block; font-size: 1.1rem; color: var(--success-color);">+{{
-                        channels_new_7d|default:"0" }} <span style="font-size: 0.7rem; color: var(--text-secondary);">7
-                            Days</span></span>
-                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">+{{
-                        channels_new_30d|default:"0" }} <span style="font-size: 0.7rem;">30 Days</span></span>
+                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">+{{ channels_new_today|default:"0" }} <span style="font-size: 0.8rem; color: var(--text-secondary);">Today</span></span>
+                    <span style="display: block; font-size: 1.1rem; color: var(--success-color);">+{{ channels_new_7d|default:"0" }} <span style="font-size: 0.7rem; color: var(--text-secondary);">7 Days</span></span>
+                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">+{{ channels_new_30d|default:"0" }} <span style="font-size: 0.7rem;">30 Days</span></span>
                 </div>
             </div>
             <div>
                 <h4 style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Engagement</h4>
-                <!-- Placeholder for future engagement metrics if needed -->
-                <div style="margin-top: 10px;">
-                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">{{ matches_today }}
-                        <span style="font-size: 0.8rem; color: var(--text-secondary);">Matches</span></span>
-                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">Req/Hour: {{
-                        traffic_today.job_processing_requests|default:"~0" }}</span>
-                </div>
+                 <div style="margin-top: 10px;">
+                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">{{ matches_today }} <span style="font-size: 0.8rem; color: var(--text-secondary);">Matches</span></span>
+                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">Avg Latency: {{ latency_stats.0.avg_latency|default:"0" }}ms</span>
+                 </div>
             </div>
         </div>
     </div>
 
-    <!-- AI Tier Distribution -->
-    <div class="card span-2 row-span-2">
+    <!-- Row 2: Charts -->
+    <div class="card span-2">
         <h3>AI Tier Distribution</h3>
         <div class="chart-container">
             <canvas id="tierChart"></canvas>
         </div>
     </div>
 
-    <!-- Latency -->
-    <div class="card span-2 row-span-2">
-        <h3>Average Latency (ms)</h3>
+    <div class="card span-2">
+        <h3>Success vs Failure</h3>
         <div class="chart-container">
+            <canvas id="successChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card span-4">
+        <h3>Average Latency (ms)</h3>
+        <div class="chart-container" style="height: 180px;">
             <canvas id="latencyChart"></canvas>
         </div>
     </div>
 
-    <!-- Celery Details -->
-    <div class="card span-4">
-        <h3>Celery Workers</h3>
-        <pre style="color: #aaa; overflow: hidden;">{{ queues|pprint }}</pre>
-    </div>
-
-    <!-- Logs -->
+    <!-- Celery & Logs -->
     <div class="card span-4">
         <h3>System Logs (Last 100 lines)</h3>
         <div style="height: 300px; overflow-y: scroll; background: #111; padding: 10px; border-radius: 8px;">
             <table class="log-table">
                 {% for line in logs %}
-                <tr>
-                    <td>{{ line }}</td>
-                </tr>
+                <tr><td>{{ line }}</td></tr>
                 {% empty %}
-                <tr>
-                    <td>No logs available.</td>
-                </tr>
+                <tr><td>No logs available.</td></tr>
                 {% endfor %}
             </table>
         </div>
     </div>
 </div>
 
-{{ tier_labels|json_script:"tier-labels-data" }}
-{{ tier_data|json_script:"tier-data-data" }}
-{{ latency_stats|json_script:"latency-stats-data" }}
+<!-- Data -->
+{{ tier_labels|json_script:"tier-labels" }}
+{{ tier_data|json_script:"tier-data" }}
+{{ latency_stats|json_script:"latency-data" }}
+{{ ai_success_data|json_script:"success-data" }}
+
 <script>
-    // Refresh Logic
-    setTimeout(function () {
-        window.location.reload();
-    }, 60000); // 60s auto refresh
+    // Refresh Logic (60s)
+    setTimeout(() => window.location.reload(), 60000);
 
-    // Charts
-    const ctxTier = document.getElementById('tierChart').getContext('2d');
-    const tierLabels = JSON.parse(document.getElementById('tier-labels-data').textContent);
-    const tierData = JSON.parse(document.getElementById('tier-data-data').textContent);
+    const getData = (id) => JSON.parse(document.getElementById(id).textContent);
 
-    new Chart(ctxTier, {
+    // 1. Tier Distribution
+    new Chart(document.getElementById('tierChart'), {
         type: 'doughnut',
         data: {
-            labels: tierLabels,
+            labels: getData('tier-labels'),
             datasets: [{
-                data: tierData,
+                data: getData('tier-data'),
                 backgroundColor: ['#4f46e5', '#ec4899', '#10b981', '#6b7280'],
                 borderWidth: 0
             }]
         },
         options: {
-            plugins: {
-                legend: { position: 'right', labels: { color: '#e0e0e0' } }
-            }
+            plugins: { legend: { position: 'right', labels: { color: '#e0e0e0' } } },
+            maintainAspectRatio: false
         }
     });
 
-    const ctxLatency = document.getElementById('latencyChart').getContext('2d');
-    const latencyStats = JSON.parse(document.getElementById('latency-stats-data').textContent);
-    const latLabels = latencyStats.map(item => item.tier);
-    const latData = latencyStats.map(item => item.avg_latency || 0);
-
-    new Chart(ctxLatency, {
+    // 2. Success vs Failure (Stacked Bar)
+    const sData = getData('success-data');
+    new Chart(document.getElementById('successChart'), {
         type: 'bar',
         data: {
-            labels: latLabels,
+            labels: sData.labels,
+            datasets: [
+                { label: 'Success', data: sData.success, backgroundColor: '#10b981' },
+                { label: 'Failure', data: sData.failure, backgroundColor: '#ef4444' }
+            ]
+        },
+        options: {
+            scales: {
+                x: { stacked: true, ticks: { color: '#a0a0a0' } },
+                y: { stacked: true, ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+            },
+            plugins: { legend: { labels: { color: '#e0e0e0' } } },
+            maintainAspectRatio: false
+        }
+    });
+
+    // 3. Latency Bar
+    const lData = getData('latency-data');
+    new Chart(document.getElementById('latencyChart'), {
+        type: 'bar',
+        data: {
+            labels: lData.map(d => d.tier),
             datasets: [{
-                label: 'Avg Duration (ms)',
-                data: latData,
-                backgroundColor: '#f59e0b',
-                borderRadius: 4
+                label: 'ms',
+                data: lData.map(d => d.avg_latency),
+                backgroundColor: '#f59e0b'
             }]
         },
         options: {
             scales: {
-                y: { ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255,255,255,0.1)' } },
-                x: { ticks: { color: '#a0a0a0' }, grid: { display: false } }
+                y: { ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { ticks: { color: '#a0a0a0' } }
             },
-            plugins: { legend: { display: false } }
+            plugins: { legend: { display: false } },
+            maintainAspectRatio: false
         }
     });
 </script>

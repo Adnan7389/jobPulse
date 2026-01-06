@@ -58,9 +58,17 @@
     }
 
     /* Grid Areas */
-    .span-2 { grid-column: span 2; }
-    .span-4 { grid-column: span 4; }
-    .row-span-2 { grid-row: span 2; }
+    .span-2 {
+        grid-column: span 2;
+    }
+
+    .span-4 {
+        grid-column: span 4;
+    }
+
+    .row-span-2 {
+        grid-row: span 2;
+    }
 
     /* Tables */
     .log-table {
@@ -69,8 +77,14 @@
         font-size: 0.85rem;
         color: #d4d4d4;
     }
-    .log-table tr:nth-child(odd) { background: rgba(255, 255, 255, 0.02); }
-    .log-table td { padding: 4px 8px; }
+
+    .log-table tr:nth-child(odd) {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .log-table td {
+        padding: 4px 8px;
+    }
 
     .chart-container {
         position: relative;
@@ -85,7 +99,10 @@
         display: inline-block;
         margin-right: 5px;
     }
-    .bg-green { background-color: var(--success-color); }
+
+    .bg-green {
+        background-color: var(--success-color);
+    }
 </style>
 
 <div class="dashboard-container">
@@ -123,40 +140,59 @@
             <div>
                 <h4 style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Users</h4>
                 <div style="margin-top: 10px;">
-                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">+{{ users_new_today|default:"0" }} <span style="font-size: 0.8rem; color: var(--text-secondary);">Today</span></span>
-                    <span style="display: block; font-size: 1.1rem; color: var(--success-color);">+{{ users_new_7d|default:"0" }} <span style="font-size: 0.7rem; color: var(--text-secondary);">7 Days</span></span>
-                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">+{{ users_new_30d|default:"0" }} <span style="font-size: 0.7rem;">30 Days</span></span>
+                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">+{{
+                        users_new_today|default:"0" }} <span
+                            style="font-size: 0.8rem; color: var(--text-secondary);">Today</span></span>
+                    <span style="display: block; font-size: 1.1rem; color: var(--success-color);">+{{
+                        users_new_7d|default:"0" }} <span style="font-size: 0.7rem; color: var(--text-secondary);">7
+                            Days</span></span>
+                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">+{{
+                        users_new_30d|default:"0" }} <span style="font-size: 0.7rem;">30 Days</span></span>
                 </div>
             </div>
             <div style="border-left: 1px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(255,255,255,0.1);">
                 <h4 style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Channels</h4>
                 <div style="margin-top: 10px;">
-                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">+{{ channels_new_today|default:"0" }} <span style="font-size: 0.8rem; color: var(--text-secondary);">Today</span></span>
-                    <span style="display: block; font-size: 1.1rem; color: var(--success-color);">+{{ channels_new_7d|default:"0" }} <span style="font-size: 0.7rem; color: var(--text-secondary);">7 Days</span></span>
-                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">+{{ channels_new_30d|default:"0" }} <span style="font-size: 0.7rem;">30 Days</span></span>
+                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">+{{
+                        channels_new_today|default:"0" }} <span
+                            style="font-size: 0.8rem; color: var(--text-secondary);">Today</span></span>
+                    <span style="display: block; font-size: 1.1rem; color: var(--success-color);">+{{
+                        channels_new_7d|default:"0" }} <span style="font-size: 0.7rem; color: var(--text-secondary);">7
+                            Days</span></span>
+                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">+{{
+                        channels_new_30d|default:"0" }} <span style="font-size: 0.7rem;">30 Days</span></span>
                 </div>
             </div>
             <div>
                 <h4 style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Engagement</h4>
-                 <div style="margin-top: 10px;">
-                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">{{ matches_today }} <span style="font-size: 0.8rem; color: var(--text-secondary);">Matches</span></span>
-                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">Avg Latency: {{ latency_stats.0.avg_latency|default:"0" }}ms</span>
-                 </div>
+                <div style="margin-top: 10px;">
+                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">{{ matches_today }}
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">Matches</span></span>
+                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">Avg Latency: {{
+                        latency_stats.0.avg_latency|default:"0" }}ms</span>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Row 2: Charts -->
-    <div class="card span-2">
-        <h3>AI Tier Distribution</h3>
-        <div class="chart-container">
+    <div class="card span-1">
+        <h3>AI Tier Dist.</h3>
+        <div class="chart-container" style="height: 180px;">
             <canvas id="tierChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card span-1">
+        <h3>Notif. Delivery</h3>
+        <div class="chart-container" style="height: 180px;">
+            <canvas id="notifChart"></canvas>
         </div>
     </div>
 
     <div class="card span-2">
         <h3>Success vs Failure</h3>
-        <div class="chart-container">
+        <div class="chart-container" style="height: 180px;">
             <canvas id="successChart"></canvas>
         </div>
     </div>
@@ -174,9 +210,13 @@
         <div style="height: 300px; overflow-y: scroll; background: #111; padding: 10px; border-radius: 8px;">
             <table class="log-table">
                 {% for line in logs %}
-                <tr><td>{{ line }}</td></tr>
+                <tr>
+                    <td>{{ line }}</td>
+                </tr>
                 {% empty %}
-                <tr><td>No logs available.</td></tr>
+                <tr>
+                    <td>No logs available.</td>
+                </tr>
                 {% endfor %}
             </table>
         </div>
@@ -188,6 +228,8 @@
 {{ tier_data|json_script:"tier-data" }}
 {{ latency_stats|json_script:"latency-data" }}
 {{ ai_success_data|json_script:"success-data" }}
+{{ notif_labels|json_script:"notif-labels" }}
+{{ notif_data|json_script:"notif-data" }}
 
 <script>
     // Refresh Logic (60s)
@@ -207,7 +249,24 @@
             }]
         },
         options: {
-            plugins: { legend: { position: 'right', labels: { color: '#e0e0e0' } } },
+            plugins: { legend: { display: false } }, // Hide legend to save space
+            maintainAspectRatio: false
+        }
+    });
+
+    // 2. Notification Delivery
+    new Chart(document.getElementById('notifChart'), {
+        type: 'doughnut',
+        data: {
+            labels: getData('notif-labels'),
+            datasets: [{
+                data: getData('notif-data'),
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'], // Sent, Pending, Failed
+                borderWidth: 0
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
             maintainAspectRatio: false
         }
     });

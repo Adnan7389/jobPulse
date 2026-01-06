@@ -54,12 +54,13 @@ class AiLogAdmin(admin.ModelAdmin):
         try:
             total_matches_today = Notification.objects.filter(created_at__date=today).count()
             total_matches_all = Notification.objects.count()
-            # Calculate sent vs pending
-            notif_stats = Notification.objects.values('is_sent').annotate(count=Count('id'))
+            # Calculate sent vs failed for last 24h
+            notif_raw = Notification.objects.filter(created_at__gte=last_24h).values('status').annotate(count=Count('id'))
+            notif_stats = {x['status']: x['count'] for x in notif_raw}
         except:
             total_matches_today = 0
             total_matches_all = 0
-            notif_stats = []
+            notif_stats = {}
 
         # 4. System Health & Logs
         from core.celery import app as celery_app
@@ -120,6 +121,8 @@ class AiLogAdmin(admin.ModelAdmin):
             'tier_labels': [x['tier'] for x in tier_stats],
             'tier_data': [x['count'] for x in tier_stats],
             'latency_stats': list(latency_stats),
+            'notif_labels': list(notif_stats.keys()),
+            'notif_data': list(notif_stats.values()),
         }
         
         return TemplateResponse(request, "admin/analytics/dashboard.html", context)

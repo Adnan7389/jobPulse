@@ -137,6 +137,49 @@
         <div class="metric-sub">Last 24h</div>
     </div>
 
+    <!-- Growth Metrics -->
+    <div class="card span-4">
+        <h3>Growth & Acquisition</h3>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center;">
+            <div>
+                <h4 style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Users</h4>
+                <div style="margin-top: 10px;">
+                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">+{{
+                        users_new_today|default:"0" }} <span
+                            style="font-size: 0.8rem; color: var(--text-secondary);">Today</span></span>
+                    <span style="display: block; font-size: 1.1rem; color: var(--success-color);">+{{
+                        users_new_7d|default:"0" }} <span style="font-size: 0.7rem; color: var(--text-secondary);">7
+                            Days</span></span>
+                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">+{{
+                        users_new_30d|default:"0" }} <span style="font-size: 0.7rem;">30 Days</span></span>
+                </div>
+            </div>
+            <div style="border-left: 1px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(255,255,255,0.1);">
+                <h4 style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Channels</h4>
+                <div style="margin-top: 10px;">
+                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">+{{
+                        channels_new_today|default:"0" }} <span
+                            style="font-size: 0.8rem; color: var(--text-secondary);">Today</span></span>
+                    <span style="display: block; font-size: 1.1rem; color: var(--success-color);">+{{
+                        channels_new_7d|default:"0" }} <span style="font-size: 0.7rem; color: var(--text-secondary);">7
+                            Days</span></span>
+                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">+{{
+                        channels_new_30d|default:"0" }} <span style="font-size: 0.7rem;">30 Days</span></span>
+                </div>
+            </div>
+            <div>
+                <h4 style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Engagement</h4>
+                <!-- Placeholder for future engagement metrics if needed -->
+                <div style="margin-top: 10px;">
+                    <span style="display: block; font-size: 1.5rem; color: var(--text-primary);">{{ matches_today }}
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">Matches</span></span>
+                    <span style="display: block; font-size: 0.9rem; color: var(--text-secondary);">Req/Hour: {{
+                        traffic_today.job_processing_requests|default:"~0" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- AI Tier Distribution -->
     <div class="card span-2 row-span-2">
         <h3>AI Tier Distribution</h3>

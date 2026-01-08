@@ -24,12 +24,17 @@ class Uploader:
         try:
             url = f"{config.BACKEND_URL}/api/job_posts/"
             response = requests.post(url, json=job_data, timeout=10)
+            
             if response.status_code in [200, 201]:
-                logger.info(f"Successfully sent message {job_data.get('message_id')} (Channel {job_data.get('channel_id')}) to backend.")
+                resp_data = response.json() if response.text else {}
+                if resp_data.get('status') == 'skipped':
+                    logger.info(f"⏭️  Skipped message {job_data.get('message_id')} (Duplicate)")
+                else:
+                    logger.info(f"✅ Successfully sent message {job_data.get('message_id')} (Channel {job_data.get('channel_id')}) to backend.")
                 return True
             else:
-                logger.error(f"Failed to send job post: Status {response.status_code}, Response: {response.text}")
+                logger.error(f"❌ Failed to send job post: Status {response.status_code}, Response: {response.text}")
                 return False
         except Exception as e:
-            logger.error(f"Error sending job post: {e}")
+            logger.error(f"⚠️ Error sending job post: {e}")
             return False

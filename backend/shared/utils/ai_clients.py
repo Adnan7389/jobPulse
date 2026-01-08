@@ -33,6 +33,11 @@ class GeminiClient:
         else:
             self.client = genai.Client(api_key=self.api_key)
 
+    @retry(
+        retry=retry_if_exception_type(Exception),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=2, min=10, max=60)
+    )
     @track_ai_performance('gemini', 'extraction')
     def classify_and_extract(self, job_text: str) -> Optional[Dict[str, Any]]:
         if not self.client:
@@ -108,6 +113,11 @@ class GeminiClient:
             raise e # Re-raise to let cascade handle it
         return None
 
+    @retry(
+        retry=retry_if_exception_type(Exception),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=2, min=10, max=60)
+    )
     @track_ai_performance('gemini', 'matching')
     def semantic_match(self, user_profile: str, job_text: str) -> Optional[Dict[str, Any]]:
         if not self.client:
@@ -119,7 +129,7 @@ class GeminiClient:
         
         CRITICAL: Write the "reasoning" directly TO the User (use "You", "Your skills", "Your experience"). 
         Address them personally as if you are giving them advice on why this job is a good match for them.
-
+ 
         Evaluation Criteria:
         1. Hard Skills Match: Do the user's skills align with the job requirements?
         2. Experience Level: Does the user's years of experience match the seniority required?

@@ -25,7 +25,7 @@ class AiLogAdmin(admin.ModelAdmin):
     def dashboard_view(self, request):
         now = timezone.now()
         today = now.date()
-        last_24h = now - datetime.timedelta(hours=24)
+        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
         last_7_days = now - datetime.timedelta(days=7)
         last_30_days = now - datetime.timedelta(days=30)
 
@@ -71,8 +71,8 @@ class AiLogAdmin(admin.ModelAdmin):
                 'jobs': traffic['jobs'] or 0
             }
 
-            # 2. AI Metrics (Optimized)
-            recent_logs = AiLog.objects.filter(timestamp__gte=last_24h)
+            # 2. AI Metrics (Since Midnight)
+            recent_logs = AiLog.objects.filter(timestamp__gte=midnight)
             ai_totals = recent_logs.aggregate(
                 total_count=Count('id'),
                 total_success=Count('id', filter=Q(success=True)),
@@ -95,12 +95,12 @@ class AiLogAdmin(admin.ModelAdmin):
             context['ai_success_data']['failure'] = [ai_totals['ext_fail'], ai_totals['match_fail']]
 
             # 3. Growth & Business Impact
-            context['matches_today'] = Notification.objects.filter(created_at__date=today).count()
+            context['matches_today'] = Notification.objects.filter(created_at__gte=midnight).count()
             context['matches_7d'] = Notification.objects.filter(created_at__gte=last_7_days).count()
             context['matches_30d'] = Notification.objects.filter(created_at__gte=last_30_days).count()
             context['matches_total'] = Notification.objects.count()
 
-            notif_raw = Notification.objects.filter(created_at__gte=last_24h).values('status').annotate(count=Count('id'))
+            notif_raw = Notification.objects.filter(created_at__gte=midnight).values('status').annotate(count=Count('id'))
             context['notif_labels'] = [x['status'] for x in notif_raw]
             context['notif_data'] = [x['count'] for x in notif_raw]
 

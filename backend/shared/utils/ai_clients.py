@@ -338,16 +338,19 @@ class HuggingFaceClient:
         """
         TF-IDF Cosine Similarity for semantic matching.
         """
+        logger.info(f"🔍 HF Fallback: Starting TF-IDF match for profile (len: {len(user_profile)})")
         try:
             # Combine documents
             documents = [user_profile, job_text]
             tfidf_matrix = self.vectorizer.fit_transform(documents)
             
             # Calculate Cosine Similarity
-            similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
+            similarity = float(cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0])
             
             # Scale to 0-100
             score = int(similarity * 100)
+            
+            logger.info(f"🎯 HF Match Result: Score={score} (Raw Similarity={similarity:.4f})")
             
             # Generate template reasoning
             reasoning = (

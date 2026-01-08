@@ -74,22 +74,22 @@ class AiLogAdmin(admin.ModelAdmin):
             # 2. AI Metrics (Optimized)
             recent_logs = AiLog.objects.filter(timestamp__gte=last_24h)
             ai_totals = recent_logs.aggregate(
-                total=Count('id'),
-                success=Count('id', filter=Q(success=True)),
+                total_count=Count('id'),
+                total_success=Count('id', filter=Q(success=True)),
                 ext_success=Count('id', filter=Q(operation='extraction', success=True)),
                 match_success=Count('id', filter=Q(operation='matching', success=True)),
                 ext_fail=Count('id', filter=Q(operation='extraction', success=False)),
                 match_fail=Count('id', filter=Q(operation='matching', success=False)),
-                avg_latency=Avg('duration_ms')
+                avg_latency_ms=Avg('duration_ms')
             )
             
-            if ai_totals['total'] > 0:
-                context['overall_success_rate'] = round((ai_totals['success'] / ai_totals['total'] * 100), 1)
+            if ai_totals['total_count'] > 0:
+                context['overall_success_rate'] = round((ai_totals['total_success'] / ai_totals['total_count'] * 100), 1)
 
             tier_stats = list(AiLog.objects.values('tier').annotate(count=Count('id')).order_by('-count'))
             context['tier_labels'] = [x['tier'] for x in tier_stats]
             context['tier_data'] = [x['count'] for x in tier_stats]
-            context['latency_avg'] = round(ai_totals['avg_latency'] or 0)
+            context['latency_avg'] = round(ai_totals['avg_latency_ms'] or 0)
 
             context['ai_success_data']['success'] = [ai_totals['ext_success'], ai_totals['match_success']]
             context['ai_success_data']['failure'] = [ai_totals['ext_fail'], ai_totals['match_fail']]

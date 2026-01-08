@@ -95,7 +95,7 @@ async def main():
     # 3. Keep the process alive
     await client.run_until_disconnected()
 
-async def scrape_history(client, username, channel_id, limit=10):
+async def scrape_history(client, username, channel_id, limit=50):
     """Fetch and process historical messages from a channel."""
     try:
         logger.info(f"📜 Processing historical messages for: {username} (limit={limit})...")

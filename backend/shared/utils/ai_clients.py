@@ -16,12 +16,16 @@ def is_quota_retryable(exception):
     """
     err_msg = str(exception).lower()
     
+    # 0. ALWAYS retry if the API specifically gives a retry delay
+    if 'retry in' in err_msg or 'retry delay' in err_msg or 'retryafter' in err_msg:
+        return True
+
     # 1. Check for daily limits (non-retryable until tomorrow)
     non_retryable_keywords = [
         'per-day',
         'perday',
         'daily',
-        'quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0',
+        'absolute limit exceeded',
     ]
     
     if any(keyword in err_msg for keyword in non_retryable_keywords):
@@ -53,6 +57,8 @@ class GeminiClient:
             logger.warning("GEMINI_API_KEY not found in environment")
             self.client = None
         else:
+            masked = f"{self.api_key[:6]}...{self.api_key[-4:]}"
+            logger.info(f"🔑 GeminiClient initialized with key: {masked}")
             self.client = genai.Client(api_key=self.api_key)
 
     @retry(

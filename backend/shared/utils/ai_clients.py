@@ -6,7 +6,29 @@ from typing import Optional, Dict, Any
 from google import genai
 from google.genai import types
 from openai import OpenAI
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, retry_if_result
+
+def is_quota_retryable(exception):
+    """
+    Custom predicate for tenacity to skip retries on daily/hard quota limits.
+    Returns True if the error is retryable (e.g. per-minute limit), 
+    False if it's a hard daily limit.
+    """
+    err_msg = str(exception).lower()
+    
+    # 1. Check for daily limits (non-retryable until tomorrow)
+    non_retryable_keywords = [
+        'per-day',
+        'perday',
+        'daily',
+        'quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0',
+    ]
+    
+    if any(keyword in err_msg for keyword in non_retryable_keywords):
+        logger.warning(f"🚫 Hard quota limit hit. Skipping further retries. Error: {err_msg[:100]}...")
+        return False
+        
+    return True
 
 # Analytics
 from apps.analytics.decorators import track_ai_performance
@@ -34,9 +56,9 @@ class GeminiClient:
             self.client = genai.Client(api_key=self.api_key)
 
     @retry(
-        retry=retry_if_exception_type(Exception),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=2, min=10, max=60)
+        retry=lambda e: is_quota_retryable(e), # Patiently wait unless it's a hard daily limit
+        stop=stop_after_attempt(5), # Increase attempts to wait out the 60s windows
+        wait=wait_exponential(multiplier=2, min=15, max=75) # Max wait > 60s to bridge resets
     )
     @track_ai_performance('gemini', 'extraction')
     def classify_and_extract(self, job_text: str) -> Optional[Dict[str, Any]]:
@@ -114,9 +136,9 @@ class GeminiClient:
         return None
 
     @retry(
-        retry=retry_if_exception_type(Exception),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=2, min=10, max=60)
+        retry=lambda e: is_quota_retryable(e),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=2, min=15, max=75)
     )
     @track_ai_performance('gemini', 'matching')
     def semantic_match(self, user_profile: str, job_text: str) -> Optional[Dict[str, Any]]:
@@ -206,9 +228,9 @@ class DeepSeekClient:
         return text
 
     @retry(
-        retry=retry_if_exception_type(Exception),
+        retry=lambda e: is_quota_retryable(e),
         stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10)
+        wait=wait_exponential(multiplier=2, min=20, max=120)
     )
     @track_ai_performance('deepseek', 'extraction')
     def classify_and_extract(self, job_text: str) -> Optional[Dict[str, Any]]:
@@ -246,9 +268,9 @@ class DeepSeekClient:
             raise e
 
     @retry(
-        retry=retry_if_exception_type(Exception),
+        retry=lambda e: is_quota_retryable(e),
         stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10)
+        wait=wait_exponential(multiplier=2, min=20, max=120)
     )
     @track_ai_performance('deepseek', 'matching')
     def semantic_match(self, user_profile: str, job_text: str) -> Optional[Dict[str, Any]]:

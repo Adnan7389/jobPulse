@@ -401,8 +401,8 @@ class HuggingFaceClient:
             logger.info(f"🎯 FastEmbed Result: Score={score} (Similarity={similarity:.4f})")
             
             reasoning = (
-                f"Your profile has a {score}% semantic match with this job's requirements. "
-                "Calculated using local BGE-Small embeddings."
+                f"Your profile has a {score}% semantic match. "
+                "(Note: Premium AI busy, using local fallback engine)."
             )
             
             return {

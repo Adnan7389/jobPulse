@@ -40,12 +40,8 @@ from apps.analytics.decorators import track_ai_performance
 # For local fallback
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-# Note: For DistilBERT we might need transformers or just use the HF API. 
-# Prompt said: "Use DistilBERT for classification" inside HuggingFaceClient. 
-# For MVP simplicity and no heavy deps, I'll use HF Inference API for classification if possible, 
-# or a simplified regex/keyword approach as a solid fallback if the API fails, 
-# but the prompt specifically asked for DistilBERT.
-# However, the prompt also included `scikit-learn` in requirements, suggesting local TF-IDF.
+# Note: We are using fastembed for "Lite" local semantic matching on small servers.
+from fastembed import TextEmbedding
 # I will implement the client to be robust.
 
 logger = logging.getLogger(__name__)
@@ -309,10 +305,18 @@ class DeepSeekClient:
 
 
 class HuggingFaceClient:
+    _model = None  # Singleton model instance
+
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv("HF_API_KEY")
-        # Initialize TF-IDF vectorizer only once
-        self.vectorizer = TfidfVectorizer(stop_words='english')
+        # Lazily initialize the embedding model
+        if HuggingFaceClient._model is None:
+            try:
+                logger.info("📡 Loading FastEmbed model (BAAI/bge-small-en-v1.5)...")
+                HuggingFaceClient._model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+                logger.info("✨ FastEmbed model loaded successfully.")
+            except Exception as e:
+                logger.error(f"❌ Failed to load FastEmbed: {e}")
 
     @track_ai_performance('hf', 'extraction')
     def classify_and_extract(self, job_text: str) -> Dict[str, Any]:
@@ -364,26 +368,41 @@ class HuggingFaceClient:
     @track_ai_performance('hf', 'matching')
     def semantic_match(self, user_profile: str, job_text: str) -> Dict[str, Any]:
         """
-        TF-IDF Cosine Similarity for semantic matching.
+        FastEmbed (BGE-Small) vector matching for semantic similarity.
         """
-        logger.info(f"🔍 HF Fallback: Starting TF-IDF match for profile (len: {len(user_profile)})")
+        if not HuggingFaceClient._model:
+            logger.warning("⚠️ FastEmbed model not available, returning 0 score.")
+            return {"score": 0, "reasoning": "Local matching engine unavailable."}
+
+        logger.info(f"🔍 HF Search: Semantic match using FastEmbed (Profile len: {len(user_profile)})")
         try:
-            # Combine documents
+            # Generate embeddings (batch size 2)
             documents = [user_profile, job_text]
-            tfidf_matrix = self.vectorizer.fit_transform(documents)
+            embeddings = list(HuggingFaceClient._model.embed(documents))
             
-            # Calculate Cosine Similarity
-            similarity = float(cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0])
+            # Embeddings are numpy arrays, calculate cosine similarity
+            import numpy as np
+            vec1 = embeddings[0]
+            vec2 = embeddings[1]
+            
+            # Cosine similarity formula: (A . B) / (||A|| * ||B||)
+            # FastEmbed's BGE models often return normalized embeddings, but let's be safe
+            norm1 = np.linalg.norm(vec1)
+            norm2 = np.linalg.norm(vec2)
+            
+            if norm1 == 0 or norm2 == 0:
+                similarity = 0.0
+            else:
+                similarity = float(np.dot(vec1, vec2) / (norm1 * norm2))
             
             # Scale to 0-100
-            score = int(similarity * 100)
+            score = int(max(0, similarity) * 100)
             
-            logger.info(f"🎯 HF Match Result: Score={score} (Raw Similarity={similarity:.4f})")
+            logger.info(f"🎯 FastEmbed Result: Score={score} (Similarity={similarity:.4f})")
             
-            # Generate template reasoning
             reasoning = (
-                f"Based on keyword analysis, this job has a {score}% match with your profile. "
-                "This is an automated fallback estimate."
+                f"Your profile has a {score}% semantic match with this job's requirements. "
+                "Calculated using local BGE-Small embeddings."
             )
             
             return {
@@ -391,5 +410,5 @@ class HuggingFaceClient:
                 "reasoning": reasoning
             }
         except Exception as e:
-            logger.error(f"HF/Scikit-learn match failed: {e}")
-            return {"score": 0, "reasoning": "Fallback matching failed."}
+            logger.error(f"FastEmbed match failed: {e}")
+            return {"score": 0, "reasoning": "Local semantic matching failed."}

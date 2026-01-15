@@ -15,6 +15,12 @@ class Notification(models.Model):
     ]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     is_sent = models.BooleanField(default=False)
+    FEEDBACK_CHOICES = [
+        ('pending', 'Pending'),
+        ('relevant', 'Relevant'),
+        ('not_relevant', 'Not Relevant'),
+    ]
+    feedback = models.CharField(max_length=15, choices=FEEDBACK_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

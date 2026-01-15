@@ -7,148 +7,43 @@ from states.onboarding import OnboardingStates
 from keyboards.inline import (
     get_experience_level_keyboard, 
     get_category_keyboard, 
-    get_work_mode_keyboard, 
-    get_job_type_keyboard
+    get_featured_channels_keyboard
 )
-from services.backend_api import create_user_profile
+from services.backend_api import (
+    create_user_profile, 
+    get_featured_channels, 
+    add_channel, # To subscribe to selected channels
+    get_user_profile # To get user ID after creation
+)
 
 router = Router()
 logger = logging.getLogger(__name__)
 
-# ==================== Skills Handler ====================
-@router.message(OnboardingStates.waiting_for_skills)
-async def process_skills(message: Message, state: FSMContext):
-    """Process skills input"""
+# ==================== Step 1: Bio (Start) ====================
+# This handler should be triggered by /start command in main.py
+# But we need a handler to catch the bio input if state is set.
+
+@router.message(OnboardingStates.waiting_for_bio)
+async def process_bio(message: Message, state: FSMContext):
+    """Process bio input (Step 1)"""
     
-    # Parse comma-separated skills
-    skills_text = message.text.strip()
-    skills = [skill.strip() for skill in skills_text.split(',') if skill.strip()]
+    bio = message.text.strip()
     
-    # Validate at least one skill
-    if not skills:
+    if not bio or len(bio) < 10:
         await message.answer(
-            "⚠️ Please enter at least one skill or keyword.\n\n"
-            "<i>Example: Marketing, Excel, Python, Sales</i>",
+            "⚠️ Please include your skills and what you're looking for (at least 10 chars).\n\n"
+            "<i>Example: Graphic Designer skilled in Photoshop, Illustrator, and UI Design looking for freelance work.</i>",
             parse_mode="HTML"
         )
         return
     
-    # Store in FSM context
-    await state.update_data(skills=skills)
+    await state.update_data(bio=bio)
     
-    # Move to next step
     await message.answer(
-        f"✅ Great! Saved {len(skills)} skill(s).\n\n"
+        f"✅ Got it!\n\n"
         "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "<b>Question 2 of 8: Job Titles</b>\n\n"
-        "What job roles are you interested in?\n\n"
-        "<i>Example: Accountant, Sales Manager, Data Analyst, Developer</i>\n\n"
-        "💡 Enter job titles separated by commas:",
-        parse_mode="HTML"
-    )
-    await state.set_state(OnboardingStates.waiting_for_job_titles)
-
-
-# ==================== Job Titles Handler ====================
-@router.message(OnboardingStates.waiting_for_job_titles)
-async def process_job_titles(message: Message, state: FSMContext):
-    """Process job titles input"""
-    
-    # Parse comma-separated job titles
-    titles_text = message.text.strip()
-    job_titles = [title.strip() for title in titles_text.split(',') if title.strip()]
-    
-    # Validate at least one job title
-    if not job_titles:
-        await message.answer(
-            "⚠️ Please enter at least one job title.\n\n"
-            "<i>Example: Project Manager, Designer, Engineer</i>",
-            parse_mode="HTML"
-        )
-        return
-    
-    # Store in FSM context
-    await state.update_data(job_titles=job_titles)
-    
-    # Move to next step with inline keyboard
-    await message.answer(
-        f"✅ Great! Saved {len(job_titles)} job title(s).\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "<b>Question 3 of 8: Experience Level</b>\n\n"
-        "What's your experience level?\n\n"
-        "👇 Select from the options below:",
-        reply_markup=get_experience_level_keyboard(),
-        parse_mode="HTML"
-    )
-    await state.set_state(OnboardingStates.waiting_for_experience_level)
-
-
-# ==================== Experience Level Handler ====================
-@router.callback_query(OnboardingStates.waiting_for_experience_level)
-async def process_experience_level(callback: CallbackQuery, state: FSMContext):
-    """Process experience level selection from inline keyboard"""
-    
-    experience_level = callback.data  # junior, mid, senior, lead
-    
-    # Map to display names
-    level_display = {
-        'junior': 'Entry Level',
-        'mid': 'Mid Level',
-        'senior': 'Senior Level',
-        'lead': 'Executive / Lead'
-    }
-    
-    # Store in FSM context
-    await state.update_data(experience_level=experience_level)
-    
-    # Answer callback to remove loading state
-    await callback.answer()
-    
-    # Edit the message to show selection
-    await callback.message.edit_text(
-        f"✅ Experience level: <b>{level_display.get(experience_level, experience_level)}</b>\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "<b>Question 4 of 8: Years of Experience</b>\n\n"
-        "How many years of professional experience do you have?\n\n"
-        "💡 Enter a number (0-50):",
-        parse_mode="HTML"
-    )
-    
-    await state.set_state(OnboardingStates.waiting_for_years_experience)
-
-
-# ==================== Years of Experience Handler ====================
-@router.message(OnboardingStates.waiting_for_years_experience)
-async def process_years_experience(message: Message, state: FSMContext):
-    """Process years of experience input"""
-    
-    # Validate numeric input
-    try:
-        years = int(message.text.strip())
-        
-        if years < 0 or years > 50:
-            await message.answer(
-                "⚠️ Please enter a valid number between 0 and 50.\n\n"
-                "💡 Example: 3"
-            )
-            return
-        
-    except ValueError:
-        await message.answer(
-            "⚠️ Please enter a number (not text).\n\n"
-            "💡 Example: 3"
-        )
-        return
-    
-    # Store in FSM context
-    await state.update_data(years_experience=years)
-    
-    # Move to Category Selection
-    await message.answer(
-        f"✅ Great! {years} years of experience.\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "<b>Question 5 of 8: Target Category</b>\n\n"
-        "Which job category best describes what you are looking for?\n\n"
+        "<b>Question 2 of 4: Category</b>\n\n"
+        "Which category best fits your interest?\n\n"
         "👇 Select one category:",
         reply_markup=get_category_keyboard(),
         parse_mode="HTML"
@@ -156,162 +51,167 @@ async def process_years_experience(message: Message, state: FSMContext):
     await state.set_state(OnboardingStates.waiting_for_preferred_category)
 
 
-# ==================== Preferred Category Handler ====================
+# ==================== Step 2: Category ====================
 @router.callback_query(OnboardingStates.waiting_for_preferred_category)
-async def process_preferred_category(callback: CallbackQuery, state: FSMContext):
-    """Process category selection"""
+async def process_category(callback: CallbackQuery, state: FSMContext):
+    """Process category selection (Step 2)"""
     
     category = callback.data
-    
-    categories = {
-        'software': 'Software Development',
-        'marketing': 'Marketing',
-        'design': 'Design',
-        'sales': 'Sales',
-        'finance': 'Finance',
-        'hr': 'Human Resources',
-        'customer_service': 'Customer Service',
-        'management': 'Management',
-        'other': 'Other',
-    }
+    # Determine 'category_name' for display
+    # (Simplified for now, can map if needed)
     
     await state.update_data(preferred_category=category)
     await callback.answer()
     
     await callback.message.edit_text(
-        f"✅ Category: <b>{categories.get(category, category)}</b>\n\n"
+        f"✅ Category: <b>{category.replace('_', ' ').title()}</b>\n\n"
         "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "<b>Question 6 of 8: Work Mode</b>\n\n"
-        "What is your preferred work mode?\n\n"
-        "👇 Select one (or Any/All):",
-        reply_markup=get_work_mode_keyboard(),
+        "<b>Question 3 of 4: Experience Level</b>\n\n"
+        "What is your experience level?\n\n"
+        "👇 Select one:",
+        reply_markup=get_experience_level_keyboard(),
         parse_mode="HTML"
     )
-    await state.set_state(OnboardingStates.waiting_for_preferred_mode)
+    await state.set_state(OnboardingStates.waiting_for_experience_level)
 
 
-# ==================== Preferred Mode Handler ====================
-@router.callback_query(OnboardingStates.waiting_for_preferred_mode)
-async def process_preferred_mode(callback: CallbackQuery, state: FSMContext):
-    """Process work mode selection"""
+# ==================== Step 3: Experience ====================
+@router.callback_query(OnboardingStates.waiting_for_experience_level)
+async def process_experience(callback: CallbackQuery, state: FSMContext):
+    """Process experience selection (Step 3)"""
     
-    mode = callback.data
-    modes = {
-        'remote': 'Remote',
-        'hybrid': 'Hybrid',
-        'onsite': 'On-site',
-        'all': 'Any / All'
-    }
+    level = callback.data
+    await state.update_data(experience_level=level)
     
-    await state.update_data(preferred_mode=mode)
+    # Defaults for removed steps to keep backend happy
+    await state.update_data(
+        years_experience=1 if level == 'junior' else 3, # Dummy defaults
+        preferred_mode='all',
+        preferred_type='all',
+        skills=[], # AI will extract from Bio
+        job_titles=[] # AI will extract from Bio
+    )
+    
     await callback.answer()
     
-    await callback.message.edit_text(
-        f"✅ Work Mode: <b>{modes.get(mode, mode)}</b>\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "<b>Question 7 of 8: Job Type</b>\n\n"
-        "What type of job are you looking for?\n\n"
-        "👇 Select one (or Any/All):",
-        reply_markup=get_job_type_keyboard(),
-        parse_mode="HTML"
-    )
-    await state.set_state(OnboardingStates.waiting_for_preferred_type)
-
-
-# ==================== Preferred Type Handler ====================
-@router.callback_query(OnboardingStates.waiting_for_preferred_type)
-async def process_preferred_type(callback: CallbackQuery, state: FSMContext):
-    """Process job type selection"""
+    # Fetch Featured Channels based on category
+    data = await state.get_data()
+    category = data.get('preferred_category')
     
-    job_type = callback.data
-    types = {
-        'full_time': 'Full-time',
-        'part_time': 'Part-time',
-        'all': 'Any / All'
-    }
+    success, channels, msg = await get_featured_channels(category)
     
-    await state.update_data(preferred_type=job_type)
-    await callback.answer()
-    
-    await callback.message.edit_text(
-        f"✅ Job Type: <b>{types.get(job_type, job_type)}</b>\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "<b>Question 8 of 8: About You (Bio)</b>\n\n"
-        "Tell me what kind of job you're looking for. This helps me find the best matches for you!\n\n"
-        "<i>Example: Looking for remote Marketing opportunities with a focus on social media.</i>\n\n"
-        "💡 Write a short bio about what you're seeking:",
-        parse_mode="HTML"
-    )
-    await state.set_state(OnboardingStates.waiting_for_bio)
-
-
-# ==================== Bio Handler (Final Step) ====================
-@router.message(OnboardingStates.waiting_for_bio)
-async def process_bio(message: Message, state: FSMContext):
-    """Process bio and create user profile in backend"""
-    
-    bio = message.text.strip()
-    
-    # Validate bio is not empty
-    if not bio:
-        await message.answer(
-            "⚠️ Please tell me a bit about what you're looking for.\n\n"
-            "<i>Example: Looking for remote opportunities in sales or management</i>",
-            parse_mode="HTML"
-        )
+    if not success or not channels:
+        # Skip channel selection if fetch fails
+        await finish_onboarding(callback.message, state)
         return
+
+    # Initialize selected channels list in FSM
+    await state.update_data(
+        available_channels=channels,
+        selected_channel_ids=[]
+    )
     
-    # Store bio
-    await state.update_data(bio=bio)
+    await callback.message.edit_text(
+        f"✅ Experience: <b>{level.title()}</b>\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "<b>Final Step: Verified Channels</b>\n\n"
+        "Select channels to subscribe to using the buttons below.\n"
+        "Click 'Done' when finished.",
+        reply_markup=get_featured_channels_keyboard(channels, set()), # Start with empty set
+        parse_mode="HTML"
+    )
+    await state.set_state(OnboardingStates.waiting_for_channels)
+
+
+# ==================== Step 4: Featured Channels ====================
+@router.callback_query(OnboardingStates.waiting_for_channels, F.data.startswith("toggle_channel_"))
+async def process_channel_toggle(callback: CallbackQuery, state: FSMContext):
+    """Toggle channel selection"""
     
-    # Retrieve all collected data
-    user_data = await state.get_data()
+    channel_id = int(callback.data.split("_")[-1])
+    data = await state.get_data()
+    selected_ids = set(data.get('selected_channel_ids', []))
+    channels = data.get('available_channels', [])
     
-    # Add telegram_id
-    user_data['telegram_id'] = message.from_user.id
-    
-    # Show processing message
-    processing_msg = await message.answer("⏳ Creating your profile...")
-    
-    # Submit to backend
-    success, response_message = await create_user_profile(user_data)
-    
-    if success:
-        # Clear FSM state
-        await state.clear()
-        
-        await processing_msg.edit_text(
-            f"✅ <b>Profile Saved Successfully!</b>\n\n"
-            f"{response_message}\n\n"
-            "━━━━━━━━━━━━━━━━━━━━━\n\n"
-            "🎯 <b>Your Profile Summary:</b>\n"
-            f"• <b>Skills:</b> {', '.join(user_data['skills'])}\n"
-            f"• <b>Job Titles:</b> {', '.join(user_data['job_titles'])}\n"
-            f"• <b>Experience:</b> {user_data['experience_level']} ({user_data['years_experience']} years)\n"
-            f"• <b>Category:</b> {user_data.get('preferred_category', 'Not set').title()}\n"
-            f"• <b>Mode:</b> {user_data.get('preferred_mode', 'Not set').title()}\n"
-            f"• <b>Job Type:</b> {user_data.get('preferred_type', 'Not set').title()}\n"
-            f"• <b>Looking for:</b> {bio[:100]}{'...' if len(bio) > 100 else ''}\n\n"
-            "🔔 I'll start monitoring channels and send you personalized job alerts!\n\n"
-            "💡 <b>Next Steps:</b>\n"
-            "• Use /addchannel to add Telegram job channels to monitor\n"
-            "• Use /preferences to update your profile\n"
-            "• Use /history to see your job matches",
-            parse_mode="HTML"
-        )
-        
-        logger.info(f"Successfully onboarded user {message.from_user.id}")
-    
+    if channel_id in selected_ids:
+        selected_ids.remove(channel_id)
     else:
-        # Error occurred
+        if len(selected_ids) >= 5:
+            await callback.answer("⚠️ Limit reached! (Max 5)", show_alert=True)
+            return
+        selected_ids.add(channel_id)
+    
+    # Save back to state
+    await state.update_data(selected_channel_ids=list(selected_ids))
+    
+    # Update keyboard
+    await callback.message.edit_reply_markup(
+        reply_markup=get_featured_channels_keyboard(channels, selected_ids)
+    )
+    await callback.answer()
+
+
+@router.callback_query(OnboardingStates.waiting_for_channels, F.data == "finish_onboarding")
+async def process_finish_button(callback: CallbackQuery, state: FSMContext):
+    """Finish onboarding button clicked"""
+    await callback.answer()
+    await finish_onboarding(callback.message, state, from_callback=True)
+
+
+async def finish_onboarding(message: Message, state: FSMContext, from_callback=False):
+    """Finalize onboarding and submit data"""
+    
+    user_data = await state.get_data()
+    user_data['telegram_id'] = message.chat.id # Use chat.id which is same as user.id in private chats
+    
+    if from_callback:
+        processing_msg = await message.edit_text("⏳ Creating your profile...")
+    else:
+        processing_msg = await message.answer("⏳ Creating your profile...")
+    
+    # 1. Create Profile
+    success, response_msg = await create_user_profile(user_data)
+    
+    if not success:
         await processing_msg.edit_text(
-            f"❌ <b>Profile Creation Failed</b>\n\n"
-            f"{response_message}\n\n"
-            "Please try again with /start",
+            f"❌ <b>Profile Creation Failed</b>\n\n{response_msg}\n\nTry /start again.",
             parse_mode="HTML"
         )
-        
-        # Clear state so user can restart
         await state.clear()
+        return
+
+    # 2. Subscribe to selected channels
+    selected_ids = user_data.get('selected_channel_ids', [])
+    channels = user_data.get('available_channels', [])
+    
+    # We need to get the user's DB ID to link subscriptions.
+    # Since create_user_profile doesn't return the ID, we fetch the profile now.
+    fetch_success, profile_data, _ = await get_user_profile(user_data['telegram_id'])
+    
+    if fetch_success and profile_data:
+        user_db_id = profile_data['id']
         
-        logger.error(f"Failed to onboard user {message.from_user.id}: {response_message}")
+        # Subscribe loop
+        for c_id in selected_ids:
+            # Find channel info
+            channel_info = next((c for c in channels if c['id'] == c_id), None)
+            if channel_info:
+                # Add/Subscribe
+                await add_channel({
+                    'name': channel_info['name'],
+                    'channel_username': channel_info['channel_username'],
+                    'channel_id': channel_info['channel_id'],
+                    'added_by': user_db_id
+                })
+    
+    await state.clear()
+    
+    await processing_msg.edit_text(
+        f"✅ <b>Profile Ready!</b>\n\n"
+        f"🎯 <b>Bio:</b> {user_data.get('bio')}\n"
+        f"📂 <b>Category:</b> {user_data.get('preferred_category')}\n"
+        f"📺 <b>Subscribed:</b> {len(selected_ids)} channels\n\n"
+        "🔔 I'll start sending you matching jobs immediately!\n\n"
+        "💡 <b>Tip:</b> If results are generic, edit your Bio in /preferences.",
+        parse_mode="HTML"
+    )

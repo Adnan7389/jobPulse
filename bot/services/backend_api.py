@@ -303,17 +303,18 @@ async def get_user_channels(user_id: int) -> Tuple[bool, Optional[List[Dict]], s
         return False, None, "An unexpected error occurred"
 
 
-async def remove_channel(channel_id: int) -> Tuple[bool, str]:
+async def remove_channel(channel_id: int, user_id: int) -> Tuple[bool, str]:
     """
-    Remove a channel from monitoring
+    Remove a channel from monitoring (Unsubscribe)
     
     Args:
         channel_id: Channel's database ID
+        user_id: User's database ID
     
     Returns:
         Tuple of (success: bool, message: str)
     """
-    url = f"{config.backend_url}/api/channels/{channel_id}/"
+    url = f"{config.backend_url}/api/channels/{channel_id}/?user_id={user_id}"
     
     try:
         async with httpx.AsyncClient(timeout=float(config.api_timeout)) as client:
@@ -338,3 +339,29 @@ async def remove_channel(channel_id: int) -> Tuple[bool, str]:
         logger.exception(f"Unexpected error: {e}")
         return False, "An unexpected error occurred"
 
+async def get_featured_channels(category: Optional[str] = None) -> Tuple[bool, Optional[List[Dict]], str]:
+    """
+    Fetch featured channels from backend, optionally filtered by category
+    
+    Args:
+        category: Optional category filter (e.g. 'software', 'general')
+    """
+    url = f"{config.backend_url}/api/channels/?is_featured=true"
+    if category:
+        url += f"&category={category}"
+    
+    try:
+        async with httpx.AsyncClient(timeout=float(config.api_timeout)) as client:
+            response = await client.get(url)
+            
+            if response.status_code == 200:
+                channels = response.json()
+                logger.info(f"Fetched {len(channels)} featured channels (category={category})")
+                return True, channels, "Featured channels fetched successfully"
+            else:
+                logger.error(f"Failed to fetch featured channels: {response.text}")
+                return False, None, "Failed to load channels"
+                
+    except Exception as e:
+        logger.exception(f"Error fetching featured channels: {e}")
+        return False, None, "Connection error"

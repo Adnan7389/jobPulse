@@ -40,8 +40,8 @@ async def cmd_my_profile(message: Message, state: FSMContext = None):
         return
     
     # Format profile data
-    skills = ", ".join(user_data.get('skills', [])) or "None listed"
-    job_titles = ", ".join(user_data.get('job_titles', [])) or "None listed"
+    skills = user_data.get('skills', [])
+    job_titles = user_data.get('job_titles', [])
     
     # Map experience level to display name
     level_map = {
@@ -56,19 +56,28 @@ async def cmd_my_profile(message: Message, state: FSMContext = None):
     years_exp = user_data.get('years_experience', 0)
     bio = user_data.get('bio', 'No bio provided')
     
-    # Create profile message
-    profile_text = (
-        "👤 <b>Your JobLens Profile</b>\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"🛠 <b>Skills:</b>\n{skills}\n\n"
-        f"💼 <b>Desired Roles:</b>\n{job_titles}\n\n"
-        f"🎯 <b>Filter Category:</b>\n{user_data.get('preferred_category', 'Not set').title()}\n\n"
-        f"🌐 <b>Work Mode:</b>\n{user_data.get('preferred_mode', 'Not set').title()}\n\n"
-        f"📉 <b>Experience Level:</b>\n{exp_level}\n\n"
-        f"⏳ <b>Years of Experience:</b>\n{years_exp} years\n\n"
-        f"📝 <b>Bio / Looking For:</b>\n{bio}\n\n"
-        "━━━━━━━━━━━━━━━━━━━━━\n"
-    )
+    # Create profile message parts
+    parts = ["👤 <b>Your JobLens Profile</b>\n\n━━━━━━━━━━━━━━━━━━━━━\n"]
+    
+    parts.append(f"📝 <b>Bio / Looking For:</b>\n{bio}\n")
+    
+    if skills:
+        parts.append(f"🛠 <b>Skills:</b>\n{', '.join(skills)}\n")
+        
+    if job_titles:
+        parts.append(f"💼 <b>Role:</b>\n{', '.join(job_titles)}\n")
+        
+    parts.append(f"🎯 <b>Filter Category:</b>\n{user_data.get('preferred_category', 'Not set').title()}\n")
+    
+    # Only show these if they were explicitly set to something other than 'all' or default
+    if user_data.get('preferred_mode') != 'all':
+        parts.append(f"🌐 <b>Work Mode:</b>\n{user_data.get('preferred_mode', 'Not set').title()}\n")
+        
+    parts.append(f"📉 <b>Experience:</b>\n{exp_level}\n")
+    
+    parts.append("━━━━━━━━━━━━━━━━━━━━━\n")
+    
+    profile_text = "\n".join(parts)
     
     # Inline keyboard for actions
     keyboard = InlineKeyboardMarkup(inline_keyboard=[

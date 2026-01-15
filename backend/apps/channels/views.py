@@ -11,8 +11,24 @@ class ChannelCreateListView(generics.ListCreateAPIView):
         """Allow filtering by added_by user (now subscribers)"""
         queryset = Channel.objects.all()
         added_by = self.request.query_params.get('added_by')
+        is_featured = self.request.query_params.get('is_featured')
+        category = self.request.query_params.get('category')
+        
         if added_by:
             queryset = queryset.filter(subscribers__id=added_by)
+            
+        if is_featured:
+             # Allow 'true', 'True', '1'
+             if is_featured.lower() in ['true', '1']:
+                 queryset = queryset.filter(is_featured=True)
+                 
+        if category:
+            if category == 'general':
+                queryset = queryset.filter(category='general')
+            else:
+                 # If user asks for 'software', give 'software' OR 'general'
+                 queryset = queryset.filter(category__in=[category, 'general'])
+                 
         return queryset
 
     def create(self, request, *args, **kwargs):
@@ -64,3 +80,25 @@ class ChannelCreateListView(generics.ListCreateAPIView):
 class ChannelDetailView(generics.RetrieveDestroyAPIView):
     queryset = Channel.objects.all()
     serializer_class = ChannelSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user_id = request.query_params.get('user_id')
+        
+        if not user_id:
+            # If no user_id provided, default to standard delete (admin only?)
+            # Or safeguard it. Let's safeguard.
+            return Response(
+                {"error": "user_id query parameter is required to unsubscribe."}, 
+                status=400
+            )
+            
+        # Unsubscribe user
+        instance.subscribers.remove(user_id)
+        
+        # logic: if no more subscribers AND not featured, delete channel?
+        # or keep it? Keeping it fills DB with junk.
+        if instance.subscribers.count() == 0 and not instance.is_featured:
+            self.perform_destroy(instance)
+            
+        return Response(status=204)

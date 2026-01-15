@@ -69,3 +69,42 @@ def get_channel_list_keyboard(channels: list) -> InlineKeyboardMarkup:
         ])
     
     return InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+def get_featured_channels_keyboard(channels: list, selected_ids: set, done_callback_data: str = "finish_onboarding") -> InlineKeyboardMarkup:
+    """
+    Create toggleable keyboard for featured channels
+    
+    Args:
+        channels: List of channel dicts from backend
+        selected_ids: Set of currently selected channel IDs
+        done_callback_data: Callback data for the Done button
+    """
+    keyboard_buttons = []
+    
+    for channel in channels:
+        c_id = channel.get('id')
+        name = channel.get('name') or channel.get('channel_username')
+        
+        # Determine status icon
+        is_selected = c_id in selected_ids
+        icon = "✅" if is_selected else "⬜"
+        
+        button_text = f"{icon} {name}"
+        # We need to pass the "context" (onboarding vs addchannel) in the toggle callback?
+        # Or we just use a generic toggle callback and handle it based on current state.
+        # Let's use generic callback, state separation handles logic.
+        callback_data = f"toggle_channel_{c_id}"
+        
+        keyboard_buttons.append([
+            InlineKeyboardButton(text=button_text, callback_data=callback_data)
+        ])
+    
+    # Add Finish/Continue button
+    current_count = len(selected_ids)
+    limit = 5
+    finish_text = f"Done ({current_count}/{limit})" if current_count > 0 else "Done"
+    
+    keyboard_buttons.append([
+        InlineKeyboardButton(text=finish_text, callback_data=done_callback_data)
+    ])
+    
+    return InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)

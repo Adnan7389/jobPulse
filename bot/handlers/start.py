@@ -19,23 +19,22 @@ async def cmd_start(message: Message, state: FSMContext):
         "👋 <b>Welcome to JobLens!</b>\n\n"
         "I'll help you find job opportunities that match your skills and preferences. "
         "I monitor Telegram channels 24/7 and send you personalized job alerts.\n\n"
-        "📋 <b>Profile Setup / Update:</b>\n"
-        "I'll ask you a few questions to build or update your matching profile:\n"
-        "• Your skills & keywords\n"
-        "• Desired job roles\n"
-        "• Experience level & years\n"
-        "• Preferred Category & Work Mode\n"
-        "• Short bio of what you're seeking\n\n"
+        "📋 <b>Profile Setup (Just 4 Steps!)</b>\n"
+        "1. Tell me about what you're looking for (Bio)\n"
+        "2. Choose your customized category\n"
+        "3. Set your experience level\n"
+        "4. Select verified channels to follow\n\n"
         "Let's get started! 🚀\n\n"
         "━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "<b>Question 1 of 5: Keywords</b>\n\n"
-        "What are your professional skills or keywords?\n\n"
-        "<i>Example: Digital Marketing, Sales, Python, Project Management</i>\n\n"
-        "💡 Enter your keywords separated by commas:"
+        "<b>Step 1 of 4: About You (Bio & Skills)</b>\n\n"
+        "Tell me about your profession and key skills.\n\n"
+        "<i>Example A: I'm a Marketing Manager skilled in SEO, Content Strategy, and Google Ads looking for full-time roles.</i>\n\n"
+        "<i>Example B: Python Developer experienced in Django and React seeking remote projects.</i>\n\n"
+        "💡 Write your bio below (don't forget to list your top skills!):"
     )
     
     await message.answer(welcome_text, parse_mode="HTML")
-    await state.set_state(OnboardingStates.waiting_for_skills)
+    await state.set_state(OnboardingStates.waiting_for_bio)
 
 
 @router.message(Command("help"))

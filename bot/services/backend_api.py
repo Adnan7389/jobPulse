@@ -365,3 +365,31 @@ async def get_featured_channels(category: Optional[str] = None) -> Tuple[bool, O
     except Exception as e:
         logger.exception(f"Error fetching featured channels: {e}")
         return False, None, "Connection error"
+
+async def submit_feedback(notification_id: int, feedback_value: str) -> Tuple[bool, str]:
+    """
+    Submit feedback for a notification
+    
+    Args:
+        notification_id: Database ID of the notification
+        feedback_value: 'relevant' or 'not_relevant'
+    
+    Returns:
+        Tuple of (success: bool, message: str)
+    """
+    url = f"{config.backend_url}/api/notifications/{notification_id}/feedback/"
+    
+    try:
+        async with httpx.AsyncClient(timeout=float(config.api_timeout)) as client:
+            response = await client.post(url, json={"feedback": feedback_value})
+            
+            if response.status_code == 200:
+                logger.info(f"Successfully submitted feedback for notification_id={notification_id}")
+                return True, "Feedback saved"
+            else:
+                logger.error(f"Failed to submit feedback: {response.text}")
+                return False, "Failed to submit feedback"
+                
+    except Exception as e:
+        logger.exception(f"Error submitting feedback: {e}")
+        return False, "Connection error"

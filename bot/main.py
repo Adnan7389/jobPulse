@@ -7,7 +7,7 @@ from aiogram.fsm.storage.redis import RedisStorage
 from redis.asyncio import Redis
 
 from config import config
-from handlers import start, onboarding, channels, profile
+from handlers import start, onboarding, channels, profile, feedback
 from services.notification_sender import NotificationSender
 from services.api import create_app
 from aiohttp import web
@@ -70,6 +70,7 @@ async def main():
     dp.include_router(onboarding.router)
     dp.include_router(channels.router)
     dp.include_router(profile.router)
+    dp.include_router(feedback.router)
     
     logger.info("Bot started successfully")
     logger.info(f"Backend URL: {config.backend_url}")

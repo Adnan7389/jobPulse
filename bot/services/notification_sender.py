@@ -37,12 +37,20 @@ class NotificationSender:
         )
         return message
 
-    def get_keyboard(self, source_link: str) -> InlineKeyboardMarkup:
-        if not source_link:
-            return None
+    def get_keyboard(self, source_link: str, notification_id: int) -> InlineKeyboardMarkup:
+        buttons = []
         
-        button = InlineKeyboardButton(text="🔗 View Original Post", url=source_link)
-        return InlineKeyboardMarkup(inline_keyboard=[[button]])
+        # Row 1: Source Link
+        if source_link:
+            buttons.append([InlineKeyboardButton(text="🔗 View Original Post", url=source_link)])
+            
+        # Row 2: Feedback
+        buttons.append([
+            InlineKeyboardButton(text="👍 Relevant", callback_data=f"feedback_rel_{notification_id}"),
+            InlineKeyboardButton(text="👎 Not Relevant", callback_data=f"feedback_not_{notification_id}")
+        ])
+        
+        return InlineKeyboardMarkup(inline_keyboard=buttons)
 
     async def send_notification(self, data: dict) -> bool:
         """
@@ -52,7 +60,10 @@ class NotificationSender:
         """
         telegram_id = data['telegram_id']
         message_text = self.format_message(data)
-        keyboard = self.get_keyboard(data['job_post'].get('source_link'))
+        keyboard = self.get_keyboard(
+            data['job_post'].get('source_link'),
+            data['notification_id']
+        )
         
         try:
             await self.bot.send_message(

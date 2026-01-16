@@ -11,4 +11,5 @@ urlpatterns = [
     path('api/users/', include('apps.users.urls')),
     path('api/channels/', include('apps.channels.urls')),
     path('api/job_posts/', include('apps.jobs.urls')),
+    path('api/notifications/', include('apps.notifications.urls')),
 ]

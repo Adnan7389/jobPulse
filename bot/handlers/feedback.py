@@ -27,14 +27,24 @@ async def process_feedback(callback: CallbackQuery):
     success, message = await submit_feedback(notification_id, feedback_value)
     
     if success:
-        # Edit message to show confirmation and remove buttons
-        # We keep the source link if it exists
+        # Edit message to show confirmation and remove ONLY feedback buttons
         current_markup = callback.message.reply_markup
+        new_keyboard = []
+        
+        if current_markup and current_markup.inline_keyboard:
+            for row in current_markup.inline_keyboard:
+                new_row = [btn for btn in row if not btn.callback_data or not btn.callback_data.startswith("feedback_")]
+                if new_row:
+                    new_keyboard.append(new_row)
+        
+        from aiogram.types import InlineKeyboardMarkup
+        reply_markup = InlineKeyboardMarkup(inline_keyboard=new_keyboard) if new_keyboard else None
+        
         new_text = callback.message.text + f"\n\n✅ <b>Feedback Sent:</b> {display_value}"
         
         await callback.message.edit_text(
             new_text,
-            reply_markup=None, # Remove buttons to prevent multiple clicks
+            reply_markup=reply_markup,
             parse_mode="HTML"
         )
         await callback.answer(f"Thank you! Feedback saved as {feedback_value}.")

@@ -317,6 +317,8 @@ class HuggingFaceClient:
                 logger.info("✨ FastEmbed model loaded successfully.")
             except Exception as e:
                 logger.error(f"❌ Failed to load FastEmbed: {e}")
+                return None
+        return HuggingFaceClient._model
 
     @track_ai_performance('hf', 'extraction')
     def classify_and_extract(self, job_text: str) -> Dict[str, Any]:
@@ -370,7 +372,8 @@ class HuggingFaceClient:
         """
         FastEmbed (BGE-Small) vector matching for semantic similarity.
         """
-        if not HuggingFaceClient._model:
+        model = self._get_model()
+        if not model:
             logger.warning("⚠️ FastEmbed model not available, returning 0 score.")
             return {"score": 0, "reasoning": "Local matching engine unavailable."}
 
@@ -378,7 +381,7 @@ class HuggingFaceClient:
         try:
             # Generate embeddings (batch size 2)
             documents = [user_profile, job_text]
-            embeddings = list(HuggingFaceClient._model.embed(documents))
+            embeddings = list(model.embed(documents))
             
             # Embeddings are numpy arrays, calculate cosine similarity
             import numpy as np

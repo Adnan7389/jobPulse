@@ -309,7 +309,8 @@ class HuggingFaceClient:
 
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv("HF_API_KEY")
-        # Lazily initialize the embedding model
+
+    def _get_model(self):
         if HuggingFaceClient._model is None:
             try:
                 logger.info("📡 Loading FastEmbed model (BAAI/bge-small-en-v1.5)...")
